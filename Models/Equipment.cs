@@ -1,17 +1,11 @@
-﻿using Farm.Models.Interfaces;
-using Farm.Models.Tools;
-using Farm.Models.Wrappers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
-namespace Farm.Models
+﻿namespace Farm.Models
 {
-	public class Equipment
+    public class Equipment
 	{
 		public int EquipmentId { get; set; }
-		public virtual ICollection<Tool> Tools { get; set; }
-		public virtual ICollection<Plant> Plants { get; set; }
+		public int Money { get; set; } = 10;
+		public ICollection<Plant> Plants { get; set; }
+		public bool HasHose { get; set; }
+		public int Fertilizers { get; set; } = 4;
 	}
 }

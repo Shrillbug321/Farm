@@ -17,7 +17,7 @@ namespace Farm.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.4")
+                .HasAnnotation("ProductVersion", "6.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
@@ -34,16 +34,17 @@ namespace Farm.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("FarmId")
+                    b.Property<int>("FarmModelId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("bit");
 
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ProfileId");
-
-                    b.HasIndex("FarmId");
 
                     b.ToTable("Profiles");
                 });
@@ -55,6 +56,15 @@ namespace Farm.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EquipmentId"), 1L, 1);
+
+                    b.Property<int>("Fertilizers")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("HasHose")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Money")
+                        .HasColumnType("int");
 
                     b.HasKey("EquipmentId");
 
@@ -96,6 +106,12 @@ namespace Farm.Migrations
 
                     b.Property<TimeSpan>("TimeToCollect")
                         .HasColumnType("time");
+
+                    b.Property<TimeSpan>("TimeToWatered")
+                        .HasColumnType("time");
+
+                    b.Property<int>("TimesToFertilize")
+                        .HasColumnType("int");
 
                     b.HasKey("FieldId");
 
@@ -159,9 +175,6 @@ namespace Farm.Migrations
                     b.Property<int?>("EquipmentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("EquippableId")
-                        .HasColumnType("int");
-
                     b.Property<TimeSpan>("GrowTime")
                         .HasColumnType("time");
 
@@ -182,29 +195,33 @@ namespace Farm.Migrations
                     b.ToTable("Plants");
                 });
 
-            modelBuilder.Entity("Farm.Models.Tools.Tool", b =>
+            modelBuilder.Entity("Farm.Models.PlantsCount", b =>
                 {
-                    b.Property<int>("ToolId")
+                    b.Property<int>("PlantsCountId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ToolId"), 1L, 1);
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PlantsCountId"), 1L, 1);
 
-                    b.Property<int?>("EquipmentId")
+                    b.Property<int>("AllCollected")
                         .HasColumnType("int");
 
-                    b.Property<int>("EquippableId")
+                    b.Property<int>("Collected")
                         .HasColumnType("int");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("PlantName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("ToolId");
+                    b.Property<int>("ProfileId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("EquipmentId");
+                    b.Property<int>("Seeds")
+                        .HasColumnType("int");
 
-                    b.ToTable("Tools");
+                    b.HasKey("PlantsCountId");
+
+                    b.ToTable("PlantsCounts");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -409,17 +426,6 @@ namespace Farm.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Farm.Models.Account.Profile", b =>
-                {
-                    b.HasOne("Farm.Models.FarmModel", "Farm")
-                        .WithMany()
-                        .HasForeignKey("FarmId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Farm");
-                });
-
             modelBuilder.Entity("Farm.Models.Field", b =>
                 {
                     b.HasOne("Farm.Models.FarmModel", null)
@@ -452,13 +458,6 @@ namespace Farm.Migrations
                 {
                     b.HasOne("Farm.Models.Equipment", null)
                         .WithMany("Plants")
-                        .HasForeignKey("EquipmentId");
-                });
-
-            modelBuilder.Entity("Farm.Models.Tools.Tool", b =>
-                {
-                    b.HasOne("Farm.Models.Equipment", null)
-                        .WithMany("Tools")
                         .HasForeignKey("EquipmentId");
                 });
 
@@ -516,8 +515,6 @@ namespace Farm.Migrations
             modelBuilder.Entity("Farm.Models.Equipment", b =>
                 {
                     b.Navigation("Plants");
-
-                    b.Navigation("Tools");
                 });
 
             modelBuilder.Entity("Farm.Models.FarmModel", b =>

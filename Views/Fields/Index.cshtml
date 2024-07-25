@@ -1,0 +1,307 @@
+﻿@using Microsoft.JSInterop
+@model IEnumerable<Farm.Models.Field>
+@inject IJSRuntime JSRuntime
+@{
+	ViewData["Title"] = "Pola";
+	Equipment equipment = ViewData["Equipment"] as Equipment;
+}
+<script>
+	var isNotWatered = false;
+	var notWateredFieldNumber = new Array();
+	var nowWateringFieldNumber = new Array();
+	let profile_id = localStorage.getItem("profile_id");
+	let watering_intervals = new Array();
+	function field_grow_time(field_div, plant_div, seconds) 
+	{
+		let field_id = field_div.id;
+		var interval = setInterval(() => {
+			if (seconds == 0) {
+				clearInterval(interval);
+				plant_div.draggable = true;
+				field_div.style.border = "5px solid lawngreen";
+			}
+			else {
+				if (isNotWatered && notWateredFieldNumber.includes(field_id))
+				{
+					const index = notWateredFieldNumber.indexOf(field_id);
+					notWateredFieldNumber.splice(index,1);
+					seconds += seconds/4;
+				}
+				if (nowWateringFieldNumber.includes(field_id))
+				{
+					const index = nowWateringFieldNumber.indexOf(field_id);
+					nowWateringFieldNumber.splice(index,1);
+					seconds -= seconds/4;
+					field_div.setAttribute("need_watering", "false");
+				}
+				seconds--;
+			}
+		}, 1000);
+	}
+function field_watering_time(field_div, seconds) {
+	let field_id = field_div.id;
+	var interval = setInterval(() => {
+		if (seconds == 0) {
+			clearInterval(interval);
+			isNotWatered = true;
+			notWateredFieldNumber.push(field_id);
+			field_div.setAttribute("need_watering", "true");
+			set_field_border_style(field_div);
+		}
+		else {
+			seconds--;
+		}
+	}, 1000);
+}
+
+function get_from_local_storage(type) {
+	var items = localStorage.getItem(type);
+	items = JSON.parse(items);
+	items = items.filter(i => i.profile_id == profile_id);
+	return items;
+}
+
+function add_events(field, is_planted) {
+	if (is_planted)
+	{
+		let field_id = field.getAttribute("id");
+		let number_id = field_id.substring(field_id.lastIndexOf('_')+1);
+	}
+}
+
+async function drop_item(event) {
+	event.preventDefault();
+	let item_type = event.dataTransfer.getData("item_type");
+	let field_id = event.target.id;
+	let field = document.getElementById(event.target.id);
+	switch (item_type) {
+		case "seed":
+			if (field.getAttribute("need_watering") == "true" || field.getAttribute("times_to_fertilise") == 0)
+			{
+				return;
+			}
+			else
+			{
+				let seed_id = event.dataTransfer.getData("seed_id");
+				console.log(seed_id);
+				let seed = document.getElementById(seed_id);
+				let plant_name = event.dataTransfer.getData("plant_name");
+				let number_id = field_id.substring(field_id.lastIndexOf('_') + 1);
+				let plant_id = "plant_"+number_id;
+				console.log(field_id);
+				var plant_div = document.createElement("div");
+				seed.draggable = "false";
+				plant_div.setAttribute("id", plant_id);
+				plant_div.setAttribute("onclick", "get_plant('"+plant_id+"')");
+				plant_div.setAttribute("draggable", "true");
+				plant_div.appendChild(seed);
+				field.appendChild(plant_div);
+				set_field_border_style(field);
+				document.getElementById("drop_plant_sfx").play();
+				split_from_local_stroage("seeds", [{ profile_id: profile_id, plant: plant_name }]);
+				$.get({
+					url: 'https://localhost:7135/Equipments/ChangeSeedsCount?plantName=' + plant_name + '&adding=false'
+				});
+				$.get('https://localhost:7135/Fields/GetSeconds?plantName='+plant_name, function(seconds){
+					var interval = setInterval(() => {
+						if (seconds <= 0) {
+							document.getElementById("ready_to_collect_sfx").play();
+							clearInterval(interval);
+							field.setAttribute("draggable", "true");
+							set_field_border_style(field);
+						}
+						else {
+							if (isNotWatered && notWateredFieldNumber.includes(field_id)) {
+								const index = notWateredFieldNumber.indexOf(field_id);
+								notWateredFieldNumber.splice(index, 1);
+								seconds += seconds / 4;
+							}
+							if (nowWateringFieldNumber.includes(field_id))
+							{
+								const index = nowWateringFieldNumber.indexOf(field_id);
+								nowWateringFieldNumber.splice(index,1);
+								seconds -= seconds/4;
+							}
+							seconds--;
+						}
+					}, 1000);
+				});
+			}
+			break;
+		case "watering_can":
+			document.getElementById("watering_sfx").play();
+			nowWateringFieldNumber.push(field_id);
+			field.setAttribute("need_watering", "false");
+			set_field_border_style(field);
+			field_watering_time(field, 2);
+			break;
+		case "fertilizer":
+			document.getElementById("fertilise_sfx").play();
+			if (document.getElementById("fertilizer_text_overlay").textContent > 0) 
+			{
+				field.setAttribute("times_to_fertilise", 4);
+				$.get({
+					url: 'https://localhost:7135/Equipments/ChangeFertilizers?howMany=1&adding=false'
+				});
+				document.getElementById("fertilizer_text_overlay").textContent--;
+			}
+			set_field_border_style(field);
+		default:
+			
+    }
+}
+async function getSeconds(plant_name)
+{
+	var sec = 0;
+	fetch('https://localhost:7135/Fields/GetSeconds?plantName='+plant_name, {
+		method: 'get'
+	}).then( (res) => res.json()).then(data => sec = data)
+	.then(() => console.log(sec))
+	.catch((error) => { console.error(error) });
+	console.log(sec);
+}
+const growTimes = 
+{
+	"Cucumber":	2,
+	"Beetroot": 2,
+	"Carrot":	2,
+	"Strawberry":2,
+	"Blueberry":2,
+	"Raspberry":2,
+	"Dandelion":2,
+	"Chamomile":2
+}
+</script>
+<audio id="watering_sfx">
+	<source src="~/sounds/watering.wav" type="audio/wav"/>
+</audio>
+<audio id="fertilise_sfx">
+	<source src="~/sounds/fertilise.wav" type="audio/wav"/>
+</audio>
+<audio id="ready_to_collect_sfx">
+	<source src="~/sounds/ready_to_collect.wav" type="audio/wav"/>
+</audio>
+<audio id="drop_plant_sfx">
+	<source src="~/sounds/drop_plant.wav" type="audio/wav"/>
+</audio>
+<audio id="get_plant_sfx">
+	<source src="~/sounds/get_plant.mp3" type="audio/mp3"/>
+</audio>
+<audio id="hose_watering_sfx">
+	<source src="~/sounds/hose_watering.wav" type="audio/wav"/>
+</audio>
+<p id="buy_field">
+	@if(equipment.Money < 20)
+	{
+		<button disabled>Dokup pole (20 monet)</button>
+	}
+	else
+	{
+		<button onclick="buy_field()">Dokup pole (20 monet)</button>
+	}
+</p>
+<div class="fields_table" id="fields_table">
+<script>
+	let fields_table = document.getElementById("fields_table");
+	let planted = get_from_local_storage("planted");
+	let fields = get_from_local_storage("fields");
+	console.log("fields");
+	console.log(fields);
+	for (let index = 1; index<=fields[0].fields; index++)
+	{
+		let field_div = document.createElement("div");
+		field_div.className = "field";
+		field_div.id = "field_"+index;
+		field_div.setAttribute("ondrop", "drop_item(event)");
+		field_div.setAttribute("ondragover", "drag_over_item(event)");
+		field_div.setAttribute("ondragenter", "drag_enter_field(event)");
+		field_div.setAttribute("ondragleave", "drag_leave_field(event)");
+		field_div.setAttribute("need_watering", "false");
+		field_div.setAttribute("times_to_fertilise", "1");
+		if (index <= planted.length)
+		{
+			let plant_div = document.createElement("div");
+			plant_div.id = "plant_"+index;
+			plant_div.setAttribute("onclick", "get_plant('plant_"+index+"')");
+			plant_div.draggable = "false";
+				let plant_img = document.createElement("img");
+				plant_img.className = "cell_image";
+				plant_img.draggable = "false";
+				plant_img.src = "/images/"+planted[index-1].plant+".png"
+				field_grow_time(field_div, plant_div, growTimes[planted[index-1].plant]);
+			plant_div.append(plant_img);
+			field_div.append(plant_div);
+		}
+		field_watering_time(field_div, 2);
+		fields_table.append(field_div);
+	}
+	
+</script>
+</div>
+<div class=fields_equipment id=fields_equipment>
+		<div class="equipment_cell" id="money">
+			<p class="text_overlay" id="money_text_overlay">
+				@equipment.Money </p>
+			<img class="cell_image coin" @String.Format("src=/images/coin.png") />
+		</div>
+		<div class="equipment_cell" draggable="false"></div>
+		<div class="equipment_cell grabbable" draggable="false">
+				<img class="cell_image" draggable="true" 	
+					@String.Format("ondragstart=drag_start_watering_can(event)")
+					@String.Format("src=/images/watering_can.png") />
+		</div>
+		<div class="equipment_cell" draggable="false">
+			<img class="cell_image" draggable="true"
+			@if (equipment.HasHose)
+			{
+				@String.Format("onclick=hose_watering(event)")
+				@String.Format(" src=/images/hose.png")
+			}
+			/>
+		</div>
+		<div class="equipment_cell grabbable" draggable="false">
+			<p class="text_overlay" id="fertilizer_text_overlay"> @equipment.Fertilizers </p>
+			<img class="cell_image" draggable="true"
+				@String.Format("ondragstart=drag_start_fertilizer(event)")
+				@String.Format("src=/images/fertilizer.png") />
+		</div>
+		<div class="equipment_cell" draggable="false"></div>
+		<script>
+			var seeds = localStorage.getItem("seeds");
+			seeds = JSON.parse(seeds);
+			seeds = seeds.filter(item=>item.profile_id == localStorage.getItem("profile_id"))
+			console.log(seeds);
+			for (var i=0; i<10; i++)
+			{
+				if (i<seeds.length)
+				{
+					var item = seeds[i];
+					var cell_div = document.createElement("div");
+					cell_div.className = "equipment_cell grabbable";
+					cell_div.draggable = "false";
+						var plant_div = document.createElement("div");
+						plant_div.draggable = "false";
+							var cell_image = document.createElement("img");
+							cell_image.id = "seed_"+i;
+							cell_image.src = "/images/"+item.plant+".png";
+							cell_image.setAttribute("ondragstart", "drag_seed(event)");
+							cell_image.setAttribute("ondrop", "return false;");
+							cell_image.width = 80;
+							cell_image.height = 80;
+						plant_div.append(cell_image);
+					cell_div.append(plant_div);
+					document.getElementById("fields_equipment").append(cell_div);
+				}
+				else
+				{
+					var cell_div = document.createElement("div");
+					cell_div.className = "equipment_cell";
+					cell_div.draggable = "false";
+					document.getElementById("fields_equipment").append(cell_div);
+				}
+			}
+		</script>
+</div>
+<div style="clear:both"></div>
+<script type="text/javascript">
+</script>

@@ -1,0 +1,108 @@
+﻿@model IEnumerable<Farm.Models.Market>
+
+@{
+    ViewData["Title"] = "Rynek";
+    List<Plant> plants = PlantsList.All();
+    Dictionary<string, int> buy_prices = new Dictionary<string, int>();
+    buy_prices.Add("Cucumber", 2);
+    buy_prices.Add("Beetroot", 3);
+    buy_prices.Add("Carrot", 3);
+    buy_prices.Add("Strawberry", 4);
+    buy_prices.Add("Blueberry", 4);
+    buy_prices.Add("Raspberry", 4);
+    buy_prices.Add("Dandelion", 1);
+    buy_prices.Add("Chamomile", 2);
+    Dictionary<string, int> sell_prices = new Dictionary<string, int>();
+    sell_prices.Add("Cucumber", 3);
+    sell_prices.Add("Beetroot", 5);
+    sell_prices.Add("Carrot", 4);
+    sell_prices.Add("Strawberry", 5);
+    sell_prices.Add("Blueberry", 6);
+    sell_prices.Add("Raspberry", 5);
+    sell_prices.Add("Dandelion", 2);
+    sell_prices.Add("Chamomile", 2);
+    Equipment equipment = ViewData["Equipment"] as Equipment;
+    List<PlantsCount> plantsCount = ViewData["PlantsCounts"] as List<PlantsCount>;
+}
+
+<audio id="sell_sfx">
+	<source src="~/sounds/sell.wav" type="audio/wav"/>
+</audio>
+<audio id="sell_all_sfx">
+	<source src="~/sounds/sell_all.wav" type="audio/wav"/>
+</audio>
+<div class="market">
+    <div class="market_plants">
+        <div class="money_div">
+		    <p id="money_text_overlay" class="money_text_overlay">
+			    @equipment.Money </p>
+		    <img class="cell_image coin" @String.Format("src=/images/coin.png") />
+	    </div>
+
+    @{
+        int i=1;
+        foreach (Plant plant in plants)
+        {
+            <div class="market_slot" @String.Format("id=slot_{0}", i)>
+                <div class="icons">
+                    <div class="buy_arrow" @String.Format("onclick=buy_plant('slot_{0}')", i)> <span>&#129144;</span> <p name="buy"> @buy_prices[plant.Name] </p></div>
+                    <div class="sell_arrow" @String.Format("onclick=sell_plant('slot_{0}')", i)><span>&#129146;</span><p name="sell"> @sell_prices[plant.Name] </p></div>
+                    <div>🌱<p class=seeds_count name=seeds_count> @plantsCount.Where(pc=>pc.PlantName == plant.Name).First().Seeds</p></div>
+                    <div>📦<p class=collected_count name=collected_count> @plantsCount.Where(pc=>pc.PlantName == plant.Name).First().Collected</p></div>
+                </div>
+                <input type=number min=0 width=30 
+                    name=@plant.Name
+                    buy_price=@buy_prices[plant.Name]
+                    sell_price=@sell_prices[plant.Name]
+                    value=0 />
+                    <img class="cell_image"
+		                @String.Format("src=/images/{0}.png", plant.Name)
+                        />
+                </div>
+            i++;
+        }
+    }
+        <div class="buttons">
+            <button onclick="buy_plants()">Kup</button>
+            <button id="sell_btn" onclick="sell_plants()">Sprzedaj</button>
+            <button id="sell_all_btn" class="mt-2" onclick="sell_all_plants()">Sprzedaj wszystkie</button>
+        </div>
+    </div>
+    <div id="tools">
+        <div>
+            <div>
+		        <img class="cell_image" @String.Format("src=/images/hose.png") />
+                @if (equipment.HasHose)
+                {
+                    <button id="buy_hose_button" onclick="buy_hose()" disabled>Kup wąż ogrodowy (30 monet)</button>
+                }
+                else
+                {
+                    if (equipment.Money < 30)
+                    {
+                        <button id="buy_hose_button" onclick="buy_hose()" disabled>Kup wąż ogrodowy (30 monet)</button>
+                    }
+                    else
+                    {
+                        <button id="buy_hose_button" onclick="buy_hose()" has-hose="false">Kup wąż ogrodowy (30 monet)</button>
+                    }
+                }
+            </div>
+            <div>
+		        <img class="cell_image" @String.Format("src=/images/fertilizer.png") />
+                @if(equipment.Money > 20)
+                {
+                    <button id="buy_fertilizer_button" onclick="buy_fertilizer()">Kup nawóz (20 monet)</button>
+                }
+                else
+                {
+                    <button id="buy_fertilizer_button" onclick="buy_fertilizer()" disabled>Kup nawóz (20 monet)</button>
+                }
+            </div>
+	    </div>
+	</div>
+    
+    <div id="sum"></div>
+    <div id="errors"></div>
+    <div style="clear:both"></div>
+</div>

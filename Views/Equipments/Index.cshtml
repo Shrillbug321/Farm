@@ -1,0 +1,61 @@
+﻿@using Microsoft.JSInterop
+@model Farm.Models.Equipment
+@inject IJSRuntime JSRuntime
+@{
+	ViewData["Title"] = "Ekwipunek";
+    List<PlantsCount> plantsCount = ViewData["PlantsCounts"] as List<PlantsCount>;
+}
+
+<div class=equipment id=equipment>
+	<script>
+		var index = 1;
+		function create_cell(item, type)
+		{
+			var cell_div = document.createElement("div");
+			cell_div.className = "equipment_cell";
+			if (type=="collected")
+				cell_div.style.backgroundColor = "navajowhite";
+				var plant_div = document.createElement("div");
+					var cell_image = document.createElement("img");
+					cell_image.id = type+"_"+index;
+					cell_image.src = "/images/"+item.plant+".png";
+					cell_image.draggable = "false";
+					cell_image.width = 80;
+					cell_image.height = 80;
+				plant_div.append(cell_image);
+			cell_div.append(plant_div);
+			document.getElementById("equipment").append(cell_div);
+			index++;
+		}
+
+		let profile_id = localStorage.getItem("profile_id");
+		var seeds = localStorage.getItem("seeds");
+		seeds = JSON.parse(seeds);
+		var collected_plants = localStorage.getItem("collected_plants");
+		collected_plants = JSON.parse(collected_plants);
+		console.log(seeds);
+		for (let item of seeds)
+		{
+			if (item.profile_id == profile_id)
+				create_cell(item, "seed")
+		}
+		document.write("<br/>");
+		for (let item of collected_plants)
+		{
+			if (item.profile_id == profile_id)
+				create_cell(item, "collected")
+		}
+	</script>
+	
+</div>
+<div style="clear: both"></div>
+<br/>
+<div class="stats">
+	<div>
+		<p> Dotychczas zebrano: </p>
+	</div>
+	@foreach(PlantsCount pc in plantsCount)
+	{
+		<p> @pc.AllCollected - @Farm.Utils.Extensions.ToPolish(pc.PlantName) </p>
+	}
+</div>

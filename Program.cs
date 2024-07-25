@@ -1,11 +1,9 @@
-﻿using Farm.Data;
+using Farm.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<FarmContext>(options =>
 	options.UseSqlServer(builder.Configuration.GetConnectionString("FarmContext") ?? throw new InvalidOperationException("Connection string 'FarmContext' not found.")));
@@ -13,8 +11,10 @@ builder.Services.AddDbContext<FarmContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+	.AddRoles<IdentityRole>()
 	.AddEntityFrameworkStores<FarmContext>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
@@ -31,7 +31,6 @@ if (app.Environment.IsDevelopment())
 else
 {
 	app.UseExceptionHandler("/Home/Error");
-	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 	app.UseHsts();
 }
 
