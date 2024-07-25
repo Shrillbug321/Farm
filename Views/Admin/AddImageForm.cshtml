@@ -1,0 +1,13 @@
+﻿@{
+    ViewData["Title"] = "AdminPanel";
+}
+<form asp-action="AddImage" method="post" enctype ="multipart/form-data">
+    <div class="form-group">
+        <label> obrazek</label>
+        <div class="col-md-10">
+            <input type="file" name="upload_image" accept="image/png, .png" multiple/>
+            <input type="submit" value="Dodaj obrazek"/>
+        </div>
+    </div>
+</form>
+    

@@ -1,8 +1,25 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using Microsoft.AspNetCore.Identity
+@{
+    ViewData["Title"] = "Wirtualne pole";
 }
-
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@inject SignInManager<IdentityUser> SignInManager
+<div class="hello_overlay">
+    <h1 class="display-4 hello_text">Witaj na wirtualnym polu</h1>
+    @if (SignInManager.IsSignedIn(User))
+{
+    <div class="hello_buttons">
+       <form  class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+            <button  type="submit">Wyloguj się</button>
+        </form>
+    </div>
+}
+else
+{
+    <div class="hello_buttons">
+        <button><a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Zaloguj się</a></button>
+        <p>Nie masz konta?</p>
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Zarejestruj się</a>
+    </div>
+}
 </div>
+<img id="hello_image" src="~/images/farm.jpg"/>
