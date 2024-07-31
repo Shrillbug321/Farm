@@ -3,52 +3,34 @@
 	public static class Extensions
 	{
 		public static string Translate(string plantName)
-        {
-			switch (plantName)
-            {
-				case "Ogorek":
-					return "Cucumber";
-				case "Burak":
-					return "Beetroot";
-				case "Marchewka":
-					return "Carrot";
-				case "Truskawki":
-					return "Strawberry";
-				case "Jagody":
-					return "Blueberry";
-				case "Maliny":
-					return "Raspberry";
-				case "Mlecz":
-					return "Dandelion";
-				case "Rumianek":
-					return "Chamomile";
-				default:
-					return "";
-            }
-        }
+		{
+			return plantName switch
+			{
+				"Ogórek" => "Cucumber",
+				"Burak" => "Beetroot",
+				"Marchewka" => "Carrot",
+				"Truskawki" => "Strawberry",
+				"Jagody" => "Blueberry",
+				"Maliny" => "Raspberry",
+				"Mlecz" => "Dandelion",
+				"Rumianek" => "Chamomile",
+				_ => ""
+			};
+		}
 		public static string ToPolish(string plantName)
-        {
-			switch (plantName)
-            {
-				case "Cucumber":
-					return "Ogórek";
-				case "Beetroot":
-					return "Burak";
-				case "Carrot":
-					return "Marchewka";
-				case "Strawberry":
-					return "Truskawki";
-				case "Blueberry":
-					return "Jagody";
-				case "Raspberry":
-					return "Maliny";
-				case "Dandelion":
-					return "Mlecz";
-				case "Chamomile":
-					return "Rumianek";
-				default:
-					return "";
-            }
-        }
+		{
+			return plantName switch
+			{
+				"Cucumber" => "Ogórek",
+				"Beetroot" => "Burak",
+				"Carrot" => "Marchewka",
+				"Strawberry" => "Truskawki",
+				"Blueberry" => "Jagody",
+				"Raspberry" => "Maliny",
+				"Dandelion" => "Mlecz",
+				"Chamomile" => "Rumianek",
+				_ => ""
+			};
+		}
 	}
 }

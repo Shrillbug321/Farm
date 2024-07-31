@@ -1,114 +1,167 @@
 ﻿if (localStorage.getItem("profiles") === null)
-	set_storage();
-get_profile_id();
-function drag_equipment_cell(event) {
+	setStorage();
+
+let profile_id = getProfileId();
+let counter = 0;
+
+const field_state = 
+{
+	empty:"empty",
+	need_watering:"need_watering",
+	need_fertilise:"need_fertilise",
+	plant_grow:"plant_grow",
+	plant_grown:"plant_grown",
+	item_over:"item_over",
+	item_over_disallowed:"item_over_disallowed"
+}
+
+function drag_equipment_cell(event)
+{
 	console.log(event);
 	event.dataTransfer.setData("item", event.target.innerText);
 }
 
-function drag_seed(event) {
+function dragSeed(event)
+{
 	event.dataTransfer.setData("item_type", "seed");
 	let src = event.target.src;
 	let plant_name = (src.substring(src.lastIndexOf('/') + 1, src.length - 4));
-	console.log(plant_name);
 	event.dataTransfer.setData("plant_name", plant_name);
 	event.dataTransfer.setData("seed_id", event.target.id);
 }
 
-function drag_start_watering_can(event) {
+function dragStartWateringCan(event)
+{
 	event.dataTransfer.setData("item_type", "watering_can");
 }
 
-function drag_start_fertilizer(event) {
+function dragStartFertilizer(event)
+{
 	event.dataTransfer.setData("item_type", "fertilizer");
 	event.dataTransfer.setData("times", document.getElementById("fertilizer_text_overlay").textContent);
 }
 
-function drag_over_item(event) {
+function dragItemOverField(event)
+{
 	event.preventDefault();
 	let field = event.target;
-	if (event.dataTransfer.getData("item_type") == "watering_can" ||
-		event.dataTransfer.getData("item_type") == "fertilizer")
+
+	if (event.dataTransfer.getData("item_type") === "watering_can" ||
+		event.dataTransfer.getData("item_type") === "fertilizer")
 		return;
-	if (field.getAttribute("need_watering") == "true") {
+
+	/*if (hasState(field_state.need_watering, field) ||
+		hasState(field_state.need_fertilise, field))
+	{
 		event.dataTransfer.dropEffect = "none";
-		field.style.border = "5px solid red";
-		return;
-	}
-	if (field.getAttribute("times_to_fertilise") == 0) {
-		event.dataTransfer.dropEffect = "none";
-		field.style.border = "5px solid red";
-		return;
-	}
-}
-let previous_style = "5px solid yellow";
-function drag_enter_field(event) {
-	event.preventDefault();
-	let field = event.target;
-	previous_style = field.style.border;
-	field.style.border = "5px solid yellow";
+		changeState(field_state.item_over_disallowed, field)
+	}*/
 }
 
-function drag_leave_field(event) {
+function dragItemEnterField(event)
+{
 	event.preventDefault();
-	set_field_border_style(event.target);
+	let field = getFieldIfDroppedOnPlant(event);
+	if (hasState(field_state.need_watering, field) ||
+		hasState(field_state.need_fertilise, field))
+	{
+		event.dataTransfer.dropEffect = "none";
+		changeState(field_state.item_over_disallowed, field)
+	}
+	else
+		changeState(field_state.item_over, field);
+	counter++;
 }
 
-function get_plant(plant_id) {
+function getFieldIfDroppedOnPlant(event)
+{
+	let target = event.target;
+	if (target.getAttribute("id") == null || !target.getAttribute("id").includes("field"))
+	{
+		if (target.classList.contains("cell_image"))
+			target = target.parentElement;
+
+		if (target.getAttribute("id").includes("plant"))
+			target = target.parentElement;
+	}
+	return target;
+}
+
+function dragItemLeaveField(event)
+{
+	event.preventDefault();
+	counter--;
+	let field = getFieldIfDroppedOnPlant(event);
+	if (counter === 0)
+	{
+		removeState(field_state.item_over, field)
+		removeState(field_state.item_over_disallowed, field)
+	}
+}
+
+function getPlant(plant_id)
+{
 	let plant = document.getElementById(plant_id);
 	let field = plant.parentNode;
-	console.log(plant);
-	if (field.getAttribute("draggable") == "true") {
-		field.setAttribute("times_to_fertilise", field.getAttribute("times_to_fertilise")-1 );
+	if (hasState(field_state.plant_grown, field))
+	{
+		field.setAttribute("times_to_fertilise", field.getAttribute("times_to_fertilise") - 1);
+		if (field.getAttribute("times_to_fertilise") === "0")
+			changeState(field_state.need_fertilise, field)
 		
 		let src = plant.getElementsByTagName("img")[0].src;
 		let plant_name = (src.substring(src.lastIndexOf('/') + 1, src.length - 4));
-		let profile_id = get_profile_id();
-		push_into_local_storage("collected_plants", [{ profile_id: profile_id, plant: plant_name }]);
-		split_from_local_stroage("planted", [{ profile_id: profile_id, plant: plant_name }]);
+		
+		pushIntoLocalStorage("collected_plants", [{profile_id: profile_id, plant: plant_name}]);
+		splitFromLocalStorage("planted", [{profile_id: profile_id, plant: plant_name}]);
 		plant.remove();
 		document.getElementById("get_plant_sfx").play();
+		
 		$.get({
 			url: 'https://localhost:7135/Equipments/ChangeCollectedCount?plantName=' + plant_name + '&adding=true'
 		});
 		$.get({
 			url: 'https://localhost:7135/Equipments/ChangeAllCollectedCount?plantName=' + plant_name + '&adding=true'
 		});
-		field.setAttribute("draggable", "false");
-		set_field_border_style(field);
+		
+		changeState(field_state.empty, field);
 	}
 }
 
-function hose_watering() {
+function hoseWatering()
+{
 	let fields = document.getElementsByClassName("field");
 	document.getElementById("hose_watering_sfx").play();
-	for (field of fields) {
-		field.setAttribute("need_watering", "false");
-		set_field_border_style(field);
-		field_watering_time(field, 2);
-    }
+	for (let field of fields)
+	{
+		removeState(field_state.need_watering, field);
+		setFieldBorderStyle(field);
+		fieldWateringTime(field, 4);
+	}
 }
 
-function buy_field() {
-	update_fields_local_storage();
+function buyField()
+{
+	updateFieldsLocalStorage();
 	$.get({
 		url: 'https://localhost:7135/Equipments/DecreaseMoney?howMany=20'
 	});
-	count_to_refresh();
+	countToRefresh();
 }
 
-function hose_buy_is_available() {
+function hoseBuyIsAvailable()
+{
 	let money = document.getElementById("money_text_overlay").textContent;
 	let button = document.getElementById("buy_hose_button");
 	if (money < 30)
 		button.setAttribute("disabled", "");
-	else {
-		if (button.getAttribute("has-hose") == "false")
+	else
+		if (button.getAttribute("has-hose") === "false")
 			button.removeAttribute("disabled");
 	}
-}
 
-function fertilizer_buy_is_available() {
+function fertilizerBuyIsAvailable()
+{
 	let money = document.getElementById("money_text_overlay").textContent;
 	let button = document.getElementById("buy_fertilizer_button");
 	if (money < 20)
@@ -117,70 +170,73 @@ function fertilizer_buy_is_available() {
 		button.removeAttribute("disabled");
 }
 
-function items_buy_is_available() {
-	hose_buy_is_available();
-	fertilizer_buy_is_available();
+function itemsBuyIsAvailable()
+{
+	hoseBuyIsAvailable();
+	fertilizerBuyIsAvailable();
 }
 
-function buy_plants() {
+function buyPlants()
+{
 	let market_slots = document.getElementsByClassName("market_slot");
 	let selected_plants = document.querySelectorAll("input[type='number']");
 	let money = document.getElementById("money_text_overlay").textContent;
 	let cost = 0.0;
-	for (let item of selected_plants) {
-		cost += (item.value*1) * (item.getAttribute("buy_price")*1);
-	}
-	if (money < cost) {
+	for (let item of selected_plants)
+		cost += (item.value * 1) * (item.getAttribute("buy_price") * 1);
+	
+	if (money < cost)
+	{
 		let div = document.createElement("div");
-		div.innerHTML = "Potrzeba "+cost+" monet!";
+		div.innerHTML = "Potrzeba " + cost + " monet!";
 		document.getElementById("errors").append(div);
-	}
-	else {
-		let profile_id = localStorage.getItem("profile_id");
-		let seeds = localStorage.getItem("seeds");
-		seeds = JSON.parse(seeds);
-		console.log(seeds);
+	} 
+	else
+	{
+		let seeds = JSON.parse(localStorage.getItem("seeds"));
 		for (let item of market_slots)
 		{
 			let plant = item.querySelectorAll("input")[0];
-			for (i = 0; i < plant.value; i++) {
-				seeds.push({ profile_id: profile_id, plant: plant.name });
-			}
-			if (plant.value > 0) {
-				item.querySelector("p[name='seeds_count']").textContent = item.querySelector("p[name='seeds_count']").textContent*1 + plant.value*1;
-				$.get({
-					url: 'https://localhost:7135/Equipments/ChangeSeedsCount?plantName=' + plant.name + '&howMany=' + plant.value+'&adding=true'
-				});
-            }
+			for (let i = 0; i < plant.value; i++)
+				seeds.push({profile_id: profile_id, plant: plant.name});
 			
+			if (plant.value > 0)
+			{
+				item.querySelector("p[name='seeds_count']").textContent = item.querySelector("p[name='seeds_count']").textContent * 1 + plant.value * 1;
+				$.get({
+					url: 'https://localhost:7135/Equipments/ChangeSeedsCount?plantName=' + plant.name + '&howMany=' + plant.value + '&adding=true'
+				});
+			}
 		}
 		localStorage.setItem("seeds", JSON.stringify(seeds));
 		$.get({
 			url: 'https://localhost:7135/Equipments/DecreaseMoney?howMany=' + cost
 		});
 		document.getElementById("money_text_overlay").textContent -= cost;
-		items_buy_is_available();
+		itemsBuyIsAvailable();
 	}
 }
-function buy_plant(slot_id) {
+
+function buyPlant(slot_id)
+{
 	let money = document.getElementById("money_text_overlay").textContent;
 	let market_slot = document.getElementById(slot_id);
 	let input = market_slot.querySelector('input');
 	let item = market_slot.querySelector("p[name = 'seeds_count']");
 
 	let cost = input.getAttribute("buy_price") * 1;
-	console.log(item);
-	if (money < cost) {
+	if (money < cost)
+	{
 		let div = document.createElement("div");
 		div.innerHTML = "Potrzeba " + cost + " monet!";
 		document.getElementById("errors").append(div);
-	}
-	else {
-		let profile_id = localStorage.getItem("profile_id");
+	} 
+	else
+	{
 		let seeds = localStorage.getItem("seeds");
 		seeds = JSON.parse(seeds);
 		console.log(seeds);
-		seeds.push({ profile_id: profile_id, plant: input.name });
+		seeds.push({profile_id: profile_id, plant: input.name});
 		localStorage.setItem("seeds", JSON.stringify(seeds));
 
 		$.get({
@@ -191,23 +247,26 @@ function buy_plant(slot_id) {
 		});
 		document.getElementById("money_text_overlay").textContent -= cost;
 		market_slot.querySelector("p[name = 'seeds_count']").textContent = market_slot.querySelector("p[name = 'seeds_count']").textContent * 1 + 1;
-		items_buy_is_available();
+		itemsBuyIsAvailable();
 	}
 }
-function sell_plants() {
+
+function sellPlants()
+{
 	let market_slots = document.getElementsByClassName("market_slot");
 	let profit = 0.0;
 	{
-		let profile_id = localStorage.getItem("profile_id");
 		let collected_plants = localStorage.getItem("collected_plants");
 		collected_plants = JSON.parse(collected_plants);
-		for (let item of market_slots) {
+		for (let item of market_slots)
+		{
 			let plant = item.querySelectorAll("input")[0];
 			let sells = 0;
-			for (i = 0; i < plant.value; i++)
+			for (let i = 0; i < plant.value; i++)
 			{
-				let remove_index = collected_plants.findIndex(el => el.profile_id == profile_id && el.plant == plant.name);
-				if (remove_index > -1) {
+				let remove_index = collected_plants.findIndex(el => el.profile_id === profile_id && el.plant === plant.name);
+				if (remove_index > -1)
+				{
 					collected_plants.splice(remove_index, 1);
 					profit += (plant.getAttribute("sell_price") * 1);
 					sells++;
@@ -219,33 +278,28 @@ function sell_plants() {
 			item.querySelector("p[name='collected_count']").textContent -= sells;
 		}
 		localStorage.setItem("collected_plants", JSON.stringify(collected_plants));
-		collected_plants = localStorage.getItem("collected_plants");
-		seeds = JSON.parse(collected_plants);
-		console.log(collected_plants);
 		$.get({
 			url: 'https://localhost:7135/Equipments/IncreaseMoney?howMany=' + profit
 		});
 		document.getElementById("sell_sfx").play();
 		document.getElementById("money_text_overlay").textContent = document.getElementById("money_text_overlay").textContent * 1 + profit;
-		items_buy_is_available();
+		itemsBuyIsAvailable();
 	}
 }
-function sell_plant(slot_id) {
+
+function sellPlant(slot_id)
+{
 	let market_slot = document.getElementById(slot_id);
 	let plant = market_slot.querySelector('input');
 	let profit = 0.0;
 	{
-		let profile_id = localStorage.getItem("profile_id");
-		let collected_plants = localStorage.getItem("collected_plants");
-		collected_plants = JSON.parse(collected_plants);
-		let remove_index = collected_plants.findIndex(el => el.profile_id == profile_id && el.plant == plant.name);
-		if (remove_index > -1) {
+		let collected_plants = JSON.parse(localStorage.getItem("collected_plants"));
+		let remove_index = collected_plants.findIndex(el => el.profile_id === profile_id && el.plant === plant.name);
+		if (remove_index > -1)
+		{
 			collected_plants.splice(remove_index, 1);
 			profit += (plant.getAttribute("sell_price") * 1);
 			localStorage.setItem("collected_plants", JSON.stringify(collected_plants));
-			collected_plants = localStorage.getItem("collected_plants");
-			seeds = JSON.parse(collected_plants);
-			console.log(collected_plants);
 			$.get({
 				url: 'https://localhost:7135/Equipments/IncreaseMoney?howMany=' + profit
 			});
@@ -255,25 +309,26 @@ function sell_plant(slot_id) {
 			document.getElementById("sell_sfx").play();
 			document.getElementById("money_text_overlay").textContent = document.getElementById("money_text_overlay").textContent * 1 + profit;
 			market_slot.querySelector("p[name='collected_count']").textContent--;
-			items_buy_is_available();
+			itemsBuyIsAvailable();
 		}
 	}
 }
-function sell_all_plants() {
+
+function sellAllPlants()
+{
 	let market_slots = document.getElementsByClassName("market_slot");
 	let profit = 0.0;
 	{
-		let profile_id = localStorage.getItem("profile_id");
-		let collected_plants = localStorage.getItem("collected_plants");
-		collected_plants = JSON.parse(collected_plants);
+		let collected_plants = JSON.parse(localStorage.getItem("collected_plants"));
 		for (let item of market_slots)
 		{
 			let plant = item.querySelectorAll("input")[0];
 			let sells = 0;
-			for (pi of collected_plants)
+			for (let collected_plant of collected_plants)
 			{
-				let remove_index = collected_plants.findIndex(el => el.profile_id == profile_id && el.plant == plant.name);
-				if (remove_index > -1) {
+				let remove_index = collected_plants.findIndex(el => el.profile_id === profile_id && el.plant === plant.name);
+				if (remove_index > -1)
+				{
 					collected_plants.splice(remove_index, 1);
 					profit += (plant.getAttribute("sell_price") * 1);
 					sells++;
@@ -285,18 +340,17 @@ function sell_all_plants() {
 			item.querySelector("p[name='collected_count']").textContent -= sells;
 		}
 		localStorage.setItem("collected_plants", JSON.stringify(collected_plants));
-		collected_plants = localStorage.getItem("collected_plants");
-		seeds = JSON.parse(collected_plants);
-		console.log(collected_plants);
 		$.get({
 			url: 'https://localhost:7135/Equipments/IncreaseMoney?howMany=' + profit
 		});
 		document.getElementById("sell_all_sfx").play();
 		document.getElementById("money_text_overlay").textContent = document.getElementById("money_text_overlay").textContent * 1 + profit;
-		items_buy_is_available();
+		itemsBuyIsAvailable();
 	}
 }
-function buy_hose() {
+
+function buyHose()
+{
 	let money = document.getElementById("money_text_overlay").textContent;
 	if (money < 30)
 	{
@@ -304,7 +358,7 @@ function buy_hose() {
 		div.innerHTML = "Nie masz tylu monet";
 		document.getElementById("errors").append(div);
 		return;
-	};
+	}
 	$.get({
 		url: 'https://localhost:7135/Equipments/DecreaseMoney?howMany=30'
 	});
@@ -312,10 +366,11 @@ function buy_hose() {
 		url: 'https://localhost:7135/Equipments/AddHose'
 	});
 	document.getElementById("money_text_overlay").textContent -= 30;
-	items_buy_is_available();
+	itemsBuyIsAvailable();
 }
 
-function buy_fertilizer() {
+function buyFertilizer()
+{
 	let money = document.getElementById("money_text_overlay").textContent;
 	if (money < 20)
 	{
@@ -323,7 +378,7 @@ function buy_fertilizer() {
 		div.innerHTML = "Nie masz tylu monet";
 		document.getElementById("errors").append(div);
 		return;
-	};
+	}
 	$.get({
 		url: 'https://localhost:7135/Equipments/DecreaseMoney?howMany=20'
 	});
@@ -331,66 +386,72 @@ function buy_fertilizer() {
 		url: 'https://localhost:7135/Equipments/ChangeFertilizers?howMany=10&adding=true'
 	});
 	document.getElementById("money_text_overlay").textContent -= 20;
-	items_buy_is_available();
+	itemsBuyIsAvailable();
 }
 
-function calculate_cost() {
+function calculateCost()
+{
 	let sum = document.getElementById("sum");
-	sum.addEventListener('input', )
+	sum.addEventListener('input')
 	let selected_plants = document.querySelectorAll("input[type='number']");
 	let cost = 0.0;
-	for (let item of selected_plants) {
+	for (let item of selected_plants)
 		cost += (item.value * 1) * (item.getAttribute("price") * 1);
-	}
-	sum.textContent = cost
+	sum.textContent = cost;
 }
 
-function set_field_border_style(field) {
-	if (field.getAttribute("draggable") == "true")
+function setFieldBorderStyle(field)
+{
+	if (hasState(field_state.item_over_disallowed, field))
+		field.style.border = "5px solid red";
+	else if (hasState(field_state.item_over, field))
+		field.style.border = "5px solid yellow";
+	else if (hasState(field_state.plant_grown, field))
 		field.style.border = "5px solid lawngreen";
-	else if (field.getAttribute("need_watering") == "true")
+	else if (hasState(field_state.need_watering, field))
 		field.style.border = "5px solid aqua";
-	else if (field.getAttribute("times_to_fertilise") == 0)
+	else if (hasState(field_state.need_fertilise, field))
 		field.style.border = "5px solid pink";
 	else
 		field.style.border = "5px solid black";
 }
 
-function count_plant_in_equipment(plant_name) {
-	let profile_id = localStorage.getItem("profile_id");
-	let seeds = localStorage.getItem("seeds");
-	seeds = JSON.parse(seeds);
-	seeds = seeds.filter(p => p.profile_id == profile_id);
-	return seeds.filter(s => s.plant == plant_name).length;
+function countPlantInEquipment(plant_name)
+{
+	let seeds = JSON.parse(localStorage.getItem("seeds"));
+	seeds = seeds.filter(p => p.profile_id === profile_id);
+	return seeds.filter(s => s.plant === plant_name).length;
 }
 
-function add_new_profile() {
-	let profile_number = get_value_from_cookie("new_profile");
-	let email = unescape(get_value_from_cookie("email"));
-	console.log(profile_number);
-	console.log(email);
-	push_profile_into_local_storage([{ profile_id: profile_number, email: email }]);
-	push_fields_into_local_storage([{ profile_id: profile_number, fields: 4 }]);
+function createProfile()
+{
+	let profile_number = getValueFromCookie("new_profile");
+	let email = decodeURI(getValueFromCookie("email"));
+	pushProfileIntoLocalStorage([{profile_id: profile_number, email: email}]);
+	pushFieldsIntoLocalStorage([{profile_id: profile_number, fields: 4}]);
 }
 
-function get_value_from_cookie(param) {
+function getValueFromCookie(param)
+{
 	let cookie = document.cookie;
-	let start_index = cookie.indexOf(param+"=");
-	start_index = cookie.indexOf("=", start_index)+1;
+	let start_index = cookie.indexOf(param + "=");
+	start_index = cookie.indexOf("=", start_index) + 1;
 	let end_index = cookie.indexOf(";", start_index + 1);
-	if (end_index == -1)
+	if (end_index === -1)
 		return cookie.slice(start_index);
 	else
 		return cookie.slice(start_index, end_index);
 }
 
-function get_profile_id() {
-	let profiles = localStorage.getItem("profiles");
-	profiles = JSON.parse(profiles);
+function getProfileId()
+{
+	let profiles = JSON.parse(localStorage.getItem("profiles"));
 	let email = document.querySelector("a[title='Manage']").textContent;
 	let profile_id = 0;
-	for (let item of profiles) {
-		if (item.email == email) {
+	for (let item of profiles)
+	{
+		if (item.email === email)
+		{
 			profile_id = item.profile_id;
 			break;
 		}
@@ -398,158 +459,109 @@ function get_profile_id() {
 	localStorage.setItem("profile_id", profile_id);
 	return profile_id;
 }
-function set_storage() {
-	localStorage.clear();
-	let profiles =
-	[
+
+function countToRefresh()
+{
+	let seconds = 0.2;
+	let interval = setInterval(() =>
+	{
+		if (seconds === 0)
 		{
-			profile_id: 1,
-			email: "admin@a.pl"
-		},
-		{
-			profile_id: 2,
-			email: "Janek@onet.pl"
+			clearInterval(interval);
+			window.location.reload();
 		}
-	]
-	let seeds =
-	[
-		{
-			profile_id: 1,
-			plant: "Strawberry"
-		},
-		{
-			profile_id: 1,
-			plant: "Beetroot"
-		},
-		{
-			profile_id: 1,
-			plant: "Cucumber"
-		},
-		{
-			profile_id: 2,
-			plant: "Cucumber"
-		}
-	]
-	let collected_plants =
-	[
-		{
-			profile_id: 1,
-			plant: "Cucumber"
-		},
-		{
-			profile_id: 1,
-			plant: "Beetroot"
-		},
-		{
-			profile_id: 1,
-			plant: "Beetroot"
-		},
-		{
-			profile_id: 1,
-			plant: "Strawberry"
-		},
-		{
-			profile_id: 2,
-			plant: "Strawberry"
-		}
-	]
-	let planted =
-	[
-		{
-			profile_id: 1,
-			plant: "Cucumber"
-		},
-		{
-			profile_id: 1,
-			plant: "Beetroot"
-		},
-		{
-			profile_id: 1,
-			plant: "Blueberry"
-		},
-		{
-			profile_id: 1,
-			plant: "Strawberry"
-		},
-		{
-			profile_id: 2,
-			plant: "Strawberry"
-		}
-	]
-	let fields =
-	[
-		{
-			profile_id: 1,
-			fields: 6
-		},
-		{
-			profile_id: 2,
-			fields: 4
-		}
-	]
-	localStorage.setItem("profiles", JSON.stringify(profiles));
-	localStorage.setItem("seeds", JSON.stringify(seeds));
-	localStorage.setItem("collected_plants", JSON.stringify(collected_plants));
-	localStorage.setItem("planted", JSON.stringify(planted));
-	localStorage.setItem("fields", JSON.stringify(fields));
+		else
+			seconds -= 0.1;
+	}, 100);
 }
 
-function push_into_local_storage(type, pushed_items) {
-	let profile_id = localStorage.getItem("profile_id");
+function changeState(state, field)
+{
+	switch (state)
+	{
+		case field_state.plant_grow:
+			removeState(field_state.empty, field);
+			break;
+		case field_state.plant_grown:
+			console.log('jjj')
+			removeState(field_state.plant_grow, field);
+			break;
+		case field_state.empty:
+			removeState(field_state.plant_grown, field);
+			break;
+	}
+	let states = field.getAttribute("states");
+	field.setAttribute("states", `${states}${state};`);
+}
+
+function addState(state, field)
+{
+	field.setAttribute("states", `${field.getAttribute("states")}${state};`);
+}
+function removeState(state, field)
+{
+	let states = field.getAttribute("states");
+	states = states.slice(0, states.indexOf(state)) + states.slice(states.indexOf(";", states.indexOf(state))+1)
+	field.setAttribute("states", states);
+}
+
+function hasState(state, field)
+{
+	let states = field.getAttribute("states");
+	return states.includes(state);
+}
+
+//localStorage
+function pushIntoLocalStorage(type, pushed_items)
+{
 	let items = localStorage.getItem(type);
 	items = JSON.parse(items);
-	console.log(items);
-	for (let item of pushed_items) {
-		items.push({ profile_id: profile_id, plant: item.plant });
-	}
+	for (let item of pushed_items)
+		items.push({profile_id: profile_id, plant: item.plant});
 	localStorage.setItem(type, JSON.stringify(items));
 }
-function push_profile_into_local_storage(pushed_items) {
-	let items = localStorage.getItem("profiles");
-	items = JSON.parse(items);
-	for (let item of pushed_items) {
-		items.push({ profile_id: item.profile_id, email: item.email });
-	}
+
+function pushProfileIntoLocalStorage(pushed_items)
+{
+	let items = JSON.parse(localStorage.getItem("profiles"));
+	for (let item of pushed_items)
+		items.push({profile_id: item.profile_id, email: item.email});
 	localStorage.setItem("profiles", JSON.stringify(items));
 }
 
-function push_fields_into_local_storage(pushed_items) {
-	let items = localStorage.getItem("fields");
-	items = JSON.parse(items);
-	for (let item of pushed_items) {
-		items.push({ profile_id: item.profile_id, fields: item.fields });
-	}
+function pushFieldsIntoLocalStorage(pushed_items)
+{
+	let items = JSON.parse(localStorage.getItem("fields"));
+	for (let item of pushed_items)
+		items.push({profile_id: item.profile_id, fields: item.fields});
 	localStorage.setItem("fields", JSON.stringify(items));
 }
 
-function get_from_local_storage(type) {
-	let profile_id = localStorage.getItem("profile_id");
-	let items = localStorage.getItem(type);
-	items = JSON.parse(items);
-	items = items.filter(i => i.profile_id == profile_id);
-	return items;
+function getFromLocalStorage(type)
+{
+	let items = JSON.parse(localStorage.getItem(type));
+	return items.filter(i => i.profile_id === profile_id);
 }
 
-function split_from_local_stroage(type, splited_items) {
-	let items = localStorage.getItem(type);
-	items = JSON.parse(items);
-	for (let item of splited_items) {
-		let remove_index = items.findIndex(el => el.profile_id == profile_id && el.plant == item.plant);
-		if (remove_index > -1) {
+function splitFromLocalStorage(type, splited_items)
+{
+	let items = JSON.parse(localStorage.getItem(type));
+	for (let item of splited_items)
+	{
+		let remove_index = items.findIndex(el => Number(el.profile_id) === profile_id && el.plant === item.plant);
+		if (remove_index > -1)
 			items.splice(remove_index, 1);
-		}
 	}
 	localStorage.setItem(type, JSON.stringify(items));
 }
 
-function update_fields_local_storage() {
-	let items = localStorage.getItem("fields");
-	items = JSON.parse(items);
-	let items_stringify = localStorage.getItem("fields");
-	console.log(items_stringify);
-	let profile_id = localStorage.getItem("profile_id");
-	for (item of items) {
-		if (item.profile_id == profile_id) {
+function updateFieldsLocalStorage()
+{
+	let items = JSON.parse(localStorage.getItem("fields"));
+	for (let item of items)
+	{
+		if (item.profile_id === profile_id)
+		{
 			item.fields += 1;
 			break;
 		}
@@ -557,15 +569,111 @@ function update_fields_local_storage() {
 	localStorage.setItem("fields", JSON.stringify(items));
 }
 
-function count_to_refresh() {
-	let seconds = 0.2;
-	let interval = setInterval(() => {
-		if (seconds == 0) {
-			clearInterval(interval);
-			window.location.reload();
-		}
-		else {
-			seconds -= 0.1;
-		}
-	}, 100);
+function updatePlantStorage(field_id, time_to_grow)
+{
+	let items = JSON.parse(localStorage.getItem("planted"));
+	items.find(i=>i.field_id === field_id).time_to_grow = time_to_grow;
+	localStorage.setItem("planted", JSON.stringify(items));
+}
+
+function setStorage()
+{
+	localStorage.clear();
+	let profiles =
+		[
+			{
+				profile_id: 1,
+				email: "admin@a.pl"
+			},
+			{
+				profile_id: 2,
+				email: "Janek@onet.pl"
+			}
+		]
+	let seeds =
+		[
+			{
+				profile_id: 1,
+				plant: "Strawberry"
+			},
+			{
+				profile_id: 1,
+				plant: "Beetroot"
+			},
+			{
+				profile_id: 1,
+				plant: "Cucumber"
+			},
+			{
+				profile_id: 2,
+				plant: "Cucumber"
+			}
+		]
+	let collected_plants =
+		[
+			{
+				profile_id: 1,
+				plant: "Cucumber"
+			},
+			{
+				profile_id: 1,
+				plant: "Beetroot"
+			},
+			{
+				profile_id: 1,
+				plant: "Beetroot"
+			},
+			{
+				profile_id: 1,
+				plant: "Strawberry"
+			},
+			{
+				profile_id: 2,
+				plant: "Strawberry"
+			}
+		]
+	let planted =
+		[
+			{
+				profile_id: 1,
+				field_id: 1,
+				plant: "Cucumber"
+			},
+			{
+				profile_id: 1,
+				field_id: 1,
+				plant: "Beetroot"
+			},
+			{
+				profile_id: 1,
+				field_id: 2,
+				plant: "Blueberry"
+			},
+			{
+				profile_id: 1,
+				field_id: 3,
+				plant: "Strawberry"
+			},
+			{
+				profile_id: 2,
+				field_id: 1,
+				plant: "Strawberry"
+			}
+		]
+	let fields =
+		[
+			{
+				profile_id: 1,
+				fields: 6
+			},
+			{
+				profile_id: 2,
+				fields: 4
+			}
+		]
+	localStorage.setItem("profiles", JSON.stringify(profiles));
+	localStorage.setItem("seeds", JSON.stringify(seeds));
+	localStorage.setItem("collected_plants", JSON.stringify(collected_plants));
+	localStorage.setItem("planted", JSON.stringify(planted));
+	localStorage.setItem("fields", JSON.stringify(fields));
 }

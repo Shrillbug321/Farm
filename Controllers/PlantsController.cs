@@ -1,10 +1,5 @@
 ﻿#nullable disable
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Farm.Data;
 using Farm.Models;
@@ -30,16 +25,12 @@ namespace Farm.Controllers
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var plant = await _context.Plants
+            Plant plant = await _context.Plants
                 .FirstOrDefaultAsync(m => m.PlantId == id);
             if (plant == null)
-            {
                 return NotFound();
-            }
 
             return View(plant);
         }
@@ -57,28 +48,23 @@ namespace Farm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("PlantId,Name,PlantType,GrowTime")] Plant plant)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(plant);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(plant);
+            if (!ModelState.IsValid)
+                return View(plant);
+            _context.Add(plant);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Plants/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var plant = await _context.Plants.FindAsync(id);
+            Plant plant = await _context.Plants.FindAsync(id);
             if (plant == null)
-            {
                 return NotFound();
-            }
+            
             return View(plant);
         }
 
@@ -90,47 +76,36 @@ namespace Farm.Controllers
         public async Task<IActionResult> Edit(int id, [Bind("PlantId,Name,PlantType,GrowTime")] Plant plant)
         {
             if (id != plant.PlantId)
-            {
                 return NotFound();
-            }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(plant);
+            
+            try
             {
-                try
-                {
-                    _context.Update(plant);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PlantExists(plant.PlantId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                _context.Update(plant);
+                await _context.SaveChangesAsync();
             }
-            return View(plant);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!PlantExists(plant.PlantId))
+                    return NotFound(); 
+                throw;
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Plants/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var plant = await _context.Plants
+            Plant plant = await _context.Plants
                 .FirstOrDefaultAsync(m => m.PlantId == id);
+            
             if (plant == null)
-            {
                 return NotFound();
-            }
 
             return View(plant);
         }

@@ -1,26 +1,27 @@
-﻿@using Microsoft.JSInterop
-@model IEnumerable<Farm.Models.Field>
-@inject IJSRuntime JSRuntime
+﻿@model IEnumerable<Farm.Models.Field>
 @{
-	ViewData["Title"] = "Pola";
-	Equipment equipment = ViewData["Equipment"] as Equipment;
+    ViewData["Title"] = "Pola";
+    Equipment equipment = ViewData["Equipment"] as Equipment;
 }
+<script src="js/localStorage.js"></script>
 <script>
-	var isNotWatered = false;
-	var notWateredFieldNumber = new Array();
-	var nowWateringFieldNumber = new Array();
-	let profile_id = localStorage.getItem("profile_id");
-	let watering_intervals = new Array();
-	function field_grow_time(field_div, plant_div, seconds) 
+	let isNotWatered = false;
+	let notWateredFieldNumber = [];
+	let nowWateringFieldNumber = [];
+	let watering_intervals = [];
+	function fieldGrowTime(field_div, plant_div, seconds) 
 	{
 		let field_id = field_div.id;
-		var interval = setInterval(() => {
-			if (seconds == 0) {
+		let interval = setInterval(() => {
+			if (seconds === 0) 
+			{
 				clearInterval(interval);
-				plant_div.draggable = true;
-				field_div.style.border = "5px solid lawngreen";
+				//plant_div.draggable = true;
+				changeState(field_state.plant_grown, field_div);
+				setFieldBorderStyle(field_div);
 			}
-			else {
+			else
+			{
 				if (isNotWatered && notWateredFieldNumber.includes(field_id))
 				{
 					const index = notWateredFieldNumber.indexOf(field_id);
@@ -32,134 +33,150 @@
 					const index = nowWateringFieldNumber.indexOf(field_id);
 					nowWateringFieldNumber.splice(index,1);
 					seconds -= seconds/4;
-					field_div.setAttribute("need_watering", "false");
+					removeState(field_state.need_watering, field_div);
+					//field_div.setAttribute("need_watering", "false");
 				}
 				seconds--;
+				updatePlantStorage(plant_div, seconds);
 			}
 		}, 1000);
 	}
-function field_watering_time(field_div, seconds) {
+	
+function fieldWateringTime(field_div, seconds)
+{
 	let field_id = field_div.id;
-	var interval = setInterval(() => {
-		if (seconds == 0) {
+	let interval = setInterval(() => {
+		if (seconds === 0)
+		{
 			clearInterval(interval);
+			if (hasState(field_state.plant_grown, field_div))
+				return;
 			isNotWatered = true;
 			notWateredFieldNumber.push(field_id);
-			field_div.setAttribute("need_watering", "true");
-			set_field_border_style(field_div);
+			//field_div.setAttribute("need_watering", "true");
+			changeState(field_state.need_watering, field_div);
+			setFieldBorderStyle(field_div);
 		}
-		else {
+		else
 			seconds--;
-		}
 	}, 1000);
 }
 
-function get_from_local_storage(type) {
-	var items = localStorage.getItem(type);
-	items = JSON.parse(items);
-	items = items.filter(i => i.profile_id == profile_id);
-	return items;
-}
-
-function add_events(field, is_planted) {
+function add_events(field, is_planted)
+{
 	if (is_planted)
 	{
 		let field_id = field.getAttribute("id");
-		let number_id = field_id.substring(field_id.lastIndexOf('_')+1);
+		let number_id = field_id.substring(field_id.lastIndexOf('_') + 1);
 	}
 }
 
-async function drop_item(event) {
+async function dropItem(event)
+{
 	event.preventDefault();
+	let target = event.target;
+	if (target.getAttribute("id") == null || !target.getAttribute("id").includes("field"))
+	{
+		if (target.classList.contains("cell_image"))
+			target = target.parentElement;
+		
+		if (target.getAttribute("id").includes("plant"))
+			target = target.parentElement;
+	}
 	let item_type = event.dataTransfer.getData("item_type");
-	let field_id = event.target.id;
-	let field = document.getElementById(event.target.id);
+	let field_id = target.id;
+	let field = document.getElementById(target.id);
+	counter = 0;
+	removeState(field_state.item_over, field);
+	removeState(field_state.item_over_disallowed, field);
 	switch (item_type) {
 		case "seed":
-			if (field.getAttribute("need_watering") == "true" || field.getAttribute("times_to_fertilise") == 0)
-			{
+			if (hasState(field_state.need_watering, field) || hasState(field_state.need_fertilise, field))
 				return;
-			}
 			else
-			{
-				let seed_id = event.dataTransfer.getData("seed_id");
-				console.log(seed_id);
-				let seed = document.getElementById(seed_id);
-				let plant_name = event.dataTransfer.getData("plant_name");
-				let number_id = field_id.substring(field_id.lastIndexOf('_') + 1);
-				let plant_id = "plant_"+number_id;
-				console.log(field_id);
-				var plant_div = document.createElement("div");
-				seed.draggable = "false";
-				plant_div.setAttribute("id", plant_id);
-				plant_div.setAttribute("onclick", "get_plant('"+plant_id+"')");
-				plant_div.setAttribute("draggable", "true");
-				plant_div.appendChild(seed);
-				field.appendChild(plant_div);
-				set_field_border_style(field);
-				document.getElementById("drop_plant_sfx").play();
-				split_from_local_stroage("seeds", [{ profile_id: profile_id, plant: plant_name }]);
-				$.get({
-					url: 'https://localhost:7135/Equipments/ChangeSeedsCount?plantName=' + plant_name + '&adding=false'
-				});
-				$.get('https://localhost:7135/Fields/GetSeconds?plantName='+plant_name, function(seconds){
-					var interval = setInterval(() => {
-						if (seconds <= 0) {
-							document.getElementById("ready_to_collect_sfx").play();
-							clearInterval(interval);
-							field.setAttribute("draggable", "true");
-							set_field_border_style(field);
-						}
-						else {
-							if (isNotWatered && notWateredFieldNumber.includes(field_id)) {
-								const index = notWateredFieldNumber.indexOf(field_id);
-								notWateredFieldNumber.splice(index, 1);
-								seconds += seconds / 4;
-							}
-							if (nowWateringFieldNumber.includes(field_id))
-							{
-								const index = nowWateringFieldNumber.indexOf(field_id);
-								nowWateringFieldNumber.splice(index,1);
-								seconds -= seconds/4;
-							}
-							seconds--;
-						}
-					}, 1000);
-				});
-			}
+				await dropSeed(event, field, field_id);
 			break;
+			
 		case "watering_can":
 			document.getElementById("watering_sfx").play();
 			nowWateringFieldNumber.push(field_id);
-			field.setAttribute("need_watering", "false");
-			set_field_border_style(field);
-			field_watering_time(field, 2);
+			removeState(field_state.need_watering, field);
+			fieldWateringTime(field, 2);
 			break;
+			
 		case "fertilizer":
 			document.getElementById("fertilise_sfx").play();
 			if (document.getElementById("fertilizer_text_overlay").textContent > 0) 
 			{
-				field.setAttribute("times_to_fertilise", 4);
+				field.setAttribute("times_to_fertilise", "4");
+				removeState(field_state.need_fertilise, field);
 				$.get({
 					url: 'https://localhost:7135/Equipments/ChangeFertilizers?howMany=1&adding=false'
 				});
 				document.getElementById("fertilizer_text_overlay").textContent--;
 			}
-			set_field_border_style(field);
-		default:
-			
     }
 }
+
+async function dropSeed(event, field, field_id)
+{
+	let seed_id = event.dataTransfer.getData("seed_id");
+	let seed = document.getElementById(seed_id);
+	let plant_name = event.dataTransfer.getData("plant_name");
+	let number_id = field_id.substring(field_id.lastIndexOf('_') + 1);
+	let plant_id = "plant_"+number_id;
+	let plant_div = document.createElement("div");
+	
+	seed.draggable = false;
+	plant_div.setAttribute("id", plant_id);
+	plant_div.setAttribute("onclick", "getPlant('"+plant_id+"')");
+	plant_div.appendChild(seed);
+	field.appendChild(plant_div);
+	setFieldBorderStyle(field);
+	document.getElementById("drop_plant_sfx").play();
+	splitFromLocalStorage("seeds", [{ profile_id: profile_id, plant: plant_name }]);
+	pushIntoLocalStorage("planted", [{profile_id: profile_id, plant: plant_name, field_id: field_id}]);
+	$.get({
+		url: 'https://localhost:7135/Equipments/ChangeSeedsCount?plantName=' + plant_name + '&adding=false'
+	});
+	$.get('https://localhost:7135/Fields/GetSeconds?plantName='+plant_name, seconds => {
+		let interval = setInterval(() => {
+			if (seconds <= 0) 
+			{
+				document.getElementById("ready_to_collect_sfx").play();
+				clearInterval(interval);
+				changeState(field_state.plant_grown, field);
+				setFieldBorderStyle(field);
+			}
+			else 
+			{
+				if (isNotWatered && notWateredFieldNumber.includes(field_id)) 
+				{
+					const index = notWateredFieldNumber.indexOf(field_id);
+					notWateredFieldNumber.splice(index, 1);
+					seconds += seconds / 4;
+				}
+				if (nowWateringFieldNumber.includes(field_id))
+				{
+					const index = nowWateringFieldNumber.indexOf(field_id);
+					nowWateringFieldNumber.splice(index, 1);
+					seconds -= seconds/4;
+				}
+				seconds--;
+			}
+		}, 1000);
+	});
+}
+
 async function getSeconds(plant_name)
 {
-	var sec = 0;
+	let sec = 0;
 	fetch('https://localhost:7135/Fields/GetSeconds?plantName='+plant_name, {
 		method: 'get'
-	}).then( (res) => res.json()).then(data => sec = data)
-	.then(() => console.log(sec))
-	.catch((error) => { console.error(error) });
-	console.log(sec);
+	}).then(res => res.json()).then(data => sec = data)
+	.catch(error => { console.error(error) });
 }
+
 const growTimes = 
 {
 	"Cucumber":	2,
@@ -173,118 +190,137 @@ const growTimes =
 }
 </script>
 <audio id="watering_sfx">
-	<source src="~/sounds/watering.wav" type="audio/wav"/>
+    <source src="~/sounds/watering.wav" type="audio/wav"/>
 </audio>
 <audio id="fertilise_sfx">
-	<source src="~/sounds/fertilise.wav" type="audio/wav"/>
+    <source src="~/sounds/fertilise.wav" type="audio/wav"/>
 </audio>
 <audio id="ready_to_collect_sfx">
-	<source src="~/sounds/ready_to_collect.wav" type="audio/wav"/>
+    <source src="~/sounds/ready_to_collect.wav" type="audio/wav"/>
 </audio>
 <audio id="drop_plant_sfx">
-	<source src="~/sounds/drop_plant.wav" type="audio/wav"/>
+    <source src="~/sounds/drop_plant.wav" type="audio/wav"/>
 </audio>
 <audio id="get_plant_sfx">
-	<source src="~/sounds/get_plant.mp3" type="audio/mp3"/>
+    <source src="~/sounds/get_plant.mp3" type="audio/mp3"/>
 </audio>
 <audio id="hose_watering_sfx">
-	<source src="~/sounds/hose_watering.wav" type="audio/wav"/>
+    <source src="~/sounds/hose_watering.wav" type="audio/wav"/>
 </audio>
 <p id="buy_field">
-	@if(equipment.Money < 20)
-	{
-		<button disabled>Dokup pole (20 monet)</button>
-	}
-	else
-	{
-		<button onclick="buy_field()">Dokup pole (20 monet)</button>
-	}
+    @if (equipment.Money < 20)
+    {
+	    <button disabled>Kup pole 
+		    <img class="cell_image small_coin" src="/images/coin.png" alt="">
+            <p class="text_overlay_small_coin">20</p></button>
+    }
+    else
+    {
+	    <button onclick="buyField()">
+		    <div style="float:left;">
+			    <img class="cell_image small_coin" src="/images/coin.png" alt="">
+			    <p class="text_overlay_small_coin">20</p>
+		    </div>
+		    <div class="button_text">
+			    Kup pole
+		    </div>
+		    <div style="clear:both;"></div>
+	    </button>
+    }
 </p>
 <div class="fields_table" id="fields_table">
-<script>
+    <script>
 	let fields_table = document.getElementById("fields_table");
-	let planted = get_from_local_storage("planted");
-	let fields = get_from_local_storage("fields");
-	console.log("fields");
-	console.log(fields);
-	for (let index = 1; index<=fields[0].fields; index++)
+	let planted = getFromLocalStorage("planted");
+	let fields = getFromLocalStorage("fields");
+	
+	for (let index = 1; index <= fields[0].fields; index++)
 	{
 		let field_div = document.createElement("div");
 		field_div.className = "field";
 		field_div.id = "field_"+index;
-		field_div.setAttribute("ondrop", "drop_item(event)");
-		field_div.setAttribute("ondragover", "drag_over_item(event)");
-		field_div.setAttribute("ondragenter", "drag_enter_field(event)");
-		field_div.setAttribute("ondragleave", "drag_leave_field(event)");
-		field_div.setAttribute("need_watering", "false");
+		field_div.setAttribute("ondrop", "dropItem(event)");
+		field_div.setAttribute("ondragover", "dragItemOverField(event)");
+		field_div.setAttribute("ondragenter", "dragItemEnterField(event)");
+		field_div.setAttribute("ondragleave", "dragItemLeaveField(event)");
 		field_div.setAttribute("times_to_fertilise", "1");
+		
 		if (index <= planted.length)
 		{
 			let plant_div = document.createElement("div");
 			plant_div.id = "plant_"+index;
-			plant_div.setAttribute("onclick", "get_plant('plant_"+index+"')");
-			plant_div.draggable = "false";
+			plant_div.setAttribute("ondrop", "dropItem(event)");
+			plant_div.setAttribute("ondragover", "dragItemOverField(event)");
+			plant_div.setAttribute("ondragenter", "dragItemEnterField(event)");
+			plant_div.setAttribute("ondragleave", "dragItemLeaveField(event)");
+			plant_div.setAttribute("onclick", "getPlant('plant_"+index+"')");
+			plant_div.draggable = false;
 				let plant_img = document.createElement("img");
 				plant_img.className = "cell_image";
-				plant_img.draggable = "false";
+				plant_img.draggable = false;
 				plant_img.src = "/images/"+planted[index-1].plant+".png"
-				field_grow_time(field_div, plant_div, growTimes[planted[index-1].plant]);
+				fieldGrowTime(field_div, plant_div, growTimes[planted[index-1].plant]);
 			plant_div.append(plant_img);
 			field_div.append(plant_div);
+			field_div.setAttribute("states", "plant_grow;");
 		}
-		field_watering_time(field_div, 2);
+		else
+			field_div.setAttribute("states", "empty;");
+		fieldWateringTime(field_div, 2);
 		fields_table.append(field_div);
+		setInterval(()=>{
+			setFieldBorderStyle(field_div)	
+		},100)
 	}
 	
 </script>
 </div>
-<div class=fields_equipment id=fields_equipment>
-		<div class="equipment_cell" id="money">
-			<p class="text_overlay" id="money_text_overlay">
-				@equipment.Money </p>
-			<img class="cell_image coin" @String.Format("src=/images/coin.png") />
-		</div>
-		<div class="equipment_cell" draggable="false"></div>
-		<div class="equipment_cell grabbable" draggable="false">
-				<img class="cell_image" draggable="true" 	
-					@String.Format("ondragstart=drag_start_watering_can(event)")
-					@String.Format("src=/images/watering_can.png") />
-		</div>
-		<div class="equipment_cell" draggable="false">
-			<img class="cell_image" draggable="true"
-			@if (equipment.HasHose)
+<div class="fields_equipment" id="fields_equipment">
+    <div class="equipment_cell" id="money">
+        <p class="text_overlay" id="money_text_overlay">
+            @equipment.Money
+        </p>
+        <img class="cell_image coin" @("src=/images/coin.png") />
+    </div>
+    <div class="equipment_cell" draggable="false"></div>
+    <div class="equipment_cell grabbable" draggable="false">
+        <img class="cell_image" draggable="true"
+             @("ondragstart=dragStartWateringCan(event)")
+             @("src=/images/watering_can.png") />
+    </div>
+    <div class="equipment_cell" draggable="false">
+        <img class="cell_image" draggable="true"
+             @if (equipment.HasHose)
+             {
+                 @("onclick=hoseWatering(event)")
+                 @(" src=/images/hose.png")
+             } />
+    </div>
+    <div class="equipment_cell grabbable" draggable="false">
+        <p class="text_overlay" id="fertilizer_text_overlay"> @equipment.Fertilizers </p>
+        <img class="cell_image" draggable="true"
+             @("ondragstart=dragStartFertilizer(event)")
+             @("src=/images/fertilizer.png") />
+    </div>
+    <div class="equipment_cell" draggable="false"></div>
+    <script>
+			let seeds = JSON.parse(localStorage.getItem("seeds"));
+			seeds = seeds.filter(item => item.profile_id === profile_id)
+			
+			for (let i = 0; i < 10; i++)
 			{
-				@String.Format("onclick=hose_watering(event)")
-				@String.Format(" src=/images/hose.png")
-			}
-			/>
-		</div>
-		<div class="equipment_cell grabbable" draggable="false">
-			<p class="text_overlay" id="fertilizer_text_overlay"> @equipment.Fertilizers </p>
-			<img class="cell_image" draggable="true"
-				@String.Format("ondragstart=drag_start_fertilizer(event)")
-				@String.Format("src=/images/fertilizer.png") />
-		</div>
-		<div class="equipment_cell" draggable="false"></div>
-		<script>
-			var seeds = localStorage.getItem("seeds");
-			seeds = JSON.parse(seeds);
-			seeds = seeds.filter(item=>item.profile_id == localStorage.getItem("profile_id"))
-			console.log(seeds);
-			for (var i=0; i<10; i++)
-			{
-				if (i<seeds.length)
+				if (i < seeds.length)
 				{
-					var item = seeds[i];
-					var cell_div = document.createElement("div");
+					let item = seeds[i];
+					let cell_div = document.createElement("div");
 					cell_div.className = "equipment_cell grabbable";
-					cell_div.draggable = "false";
-						var plant_div = document.createElement("div");
-						plant_div.draggable = "false";
-							var cell_image = document.createElement("img");
+					cell_div.draggable = false;
+						let plant_div = document.createElement("div");
+						plant_div.draggable = false;
+							let cell_image = document.createElement("img");
 							cell_image.id = "seed_"+i;
 							cell_image.src = "/images/"+item.plant+".png";
-							cell_image.setAttribute("ondragstart", "drag_seed(event)");
+							cell_image.setAttribute("ondragstart", "dragSeed(event)");
 							cell_image.setAttribute("ondrop", "return false;");
 							cell_image.width = 80;
 							cell_image.height = 80;
@@ -294,9 +330,9 @@ const growTimes =
 				}
 				else
 				{
-					var cell_div = document.createElement("div");
+					let cell_div = document.createElement("div");
 					cell_div.className = "equipment_cell";
-					cell_div.draggable = "false";
+					cell_div.draggable = false;
 					document.getElementById("fields_equipment").append(cell_div);
 				}
 			}

@@ -9,9 +9,9 @@ namespace Farm.Models
 		public Plant? Plant { get; set; }
 		[Display(Name = "Podlane")]
 		public bool IsWatered { get; set; }
-		[Display(Name ="Nawozone")]
+		[Display(Name ="Nawożone")]
 		public bool IsFertilize { get; set; }
-		[Display(Name = "Czas rosnięcia")]
+		[Display(Name = "Czas rośnięcia")]
 		public TimeSpan TimeToCollect { get; set; }
 		public TimeSpan TimeToWatered { get; set; }
 		public int TimesToFertilize { get; set; }

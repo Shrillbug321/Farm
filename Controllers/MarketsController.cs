@@ -19,30 +19,28 @@ namespace Farm.Controllers
         // GET: Markets
         public async Task<IActionResult> Index()
         {
-            int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
+            int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name)
+                .Select(u => u.ProfileId).First();
             Equipment equipment = _context.Equipments.Where(e => e.EquipmentId == profileId).Include("Plants").First();
             ViewData["Equipment"] = equipment;
             List<PlantsCount> plantsCounts = _context.PlantsCounts.Where(pc=>pc.ProfileId == profileId).ToList();
             ViewData["PlantsCounts"] = plantsCounts;
             return _context.Markets != null ? 
                           View(await _context.Markets.ToListAsync()) :
-                          Problem("Entity set 'FarmContext.Markets'  is null.");
+                          Problem("Entity set 'FarmContext.Markets' is null.");
         }
 
         // GET: Markets/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Markets == null)
-            {
                 return NotFound();
-            }
 
-            var market = await _context.Markets
+            Market market = await _context.Markets
                 .FirstOrDefaultAsync(m => m.MarketId == id);
+            
             if (market == null)
-            {
                 return NotFound();
-            }
 
             return View(market);
         }
@@ -60,28 +58,24 @@ namespace Farm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("MarketId")] Market market)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(market);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(market);
+            if (!ModelState.IsValid) 
+                return View(market);
+            _context.Add(market);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Markets/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Markets == null)
-            {
                 return NotFound();
-            }
 
-            var market = await _context.Markets.FindAsync(id);
+            Market market = await _context.Markets.FindAsync(id);
+            
             if (market == null)
-            {
                 return NotFound();
-            }
+            
             return View(market);
         }
 
@@ -93,47 +87,36 @@ namespace Farm.Controllers
         public async Task<IActionResult> Edit(int id, [Bind("MarketId")] Market market)
         {
             if (id != market.MarketId)
-            {
                 return NotFound();
-            }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(market);
+            
+            try
             {
-                try
-                {
-                    _context.Update(market);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!MarketExists(market.MarketId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                _context.Update(market);
+                await _context.SaveChangesAsync();
             }
-            return View(market);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!MarketExists(market.MarketId))
+                    return NotFound(); 
+                throw;
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Markets/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Markets == null)
-            {
                 return NotFound();
-            }
 
-            var market = await _context.Markets
+            Market market = await _context.Markets
                 .FirstOrDefaultAsync(m => m.MarketId == id);
+            
             if (market == null)
-            {
                 return NotFound();
-            }
 
             return View(market);
         }
@@ -144,14 +127,11 @@ namespace Farm.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             if (_context.Markets == null)
-            {
-                return Problem("Entity set 'FarmContext.Markets'  is null.");
-            }
-            var market = await _context.Markets.FindAsync(id);
+                return Problem("Entity set 'FarmContext.Markets' is null.");
+            
+            Market market = await _context.Markets.FindAsync(id);
             if (market != null)
-            {
                 _context.Markets.Remove(market);
-            }
             
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
@@ -159,7 +139,7 @@ namespace Farm.Controllers
 
         private bool MarketExists(int id)
         {
-          return (_context.Markets?.Any(e => e.MarketId == id)).GetValueOrDefault();
+            return (_context.Markets?.Any(e => e.MarketId == id)).GetValueOrDefault();
         }
     }
 }

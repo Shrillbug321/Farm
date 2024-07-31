@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<FarmContext>(options =>
 	options.UseSqlServer(builder.Configuration.GetConnectionString("FarmContext") ?? throw new InvalidOperationException("Connection string 'FarmContext' not found.")));
 
@@ -23,11 +22,9 @@ using (var scope = app.Services.CreateScope())
 	FarmContext context = services.GetRequiredService<FarmContext>();
 	FarmInitializer.Initialize(context);
 }
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
-{
 	app.UseMigrationsEndPoint();
-}
 else
 {
 	app.UseExceptionHandler("/Home/Error");

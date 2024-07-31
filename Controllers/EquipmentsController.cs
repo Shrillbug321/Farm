@@ -13,6 +13,7 @@ namespace Farm.Controllers
 		private string Sort;
 		private string Order;
 		private string Query;
+
 		public EquipmentsController(FarmContext context)
 		{
 			_context = context;
@@ -21,7 +22,8 @@ namespace Farm.Controllers
 		// GET: Equipments
 		public async Task<IActionResult> Index()
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId)
+				.First();
 			Equipment equipment = _context.Equipments.Where(e => e.EquipmentId == profileId).Include("Plants").First();
 			List<PlantsCount> plantsCounts = _context.PlantsCounts.Where(pc => pc.ProfileId == profileId).ToList();
 			ViewData["PlantsCounts"] = plantsCounts;
@@ -32,16 +34,13 @@ namespace Farm.Controllers
 		public async Task<IActionResult> Details(int? id)
 		{
 			if (id == null || _context.Equipments == null)
-			{
 				return NotFound();
-			}
 
-			var equipment = await _context.Equipments
+			Equipment equipment = await _context.Equipments
 				.FirstOrDefaultAsync(m => m.EquipmentId == id);
+
 			if (equipment == null)
-			{
 				return NotFound();
-			}
 
 			return View(equipment);
 		}
@@ -59,28 +58,22 @@ namespace Farm.Controllers
 		[ValidateAntiForgeryToken]
 		public async Task<IActionResult> Create([Bind("EquipmentId,Money")] Equipment equipment)
 		{
-			if (ModelState.IsValid)
-			{
-				_context.Add(equipment);
-				await _context.SaveChangesAsync();
-				return RedirectToAction(nameof(Index));
-			}
-			return View(equipment);
+			if (!ModelState.IsValid) return View(equipment);
+			_context.Add(equipment);
+			await _context.SaveChangesAsync();
+			return RedirectToAction(nameof(Index));
 		}
 
 		// GET: Equipments/Edit/5
 		public async Task<IActionResult> Edit(int? id)
 		{
 			if (id == null || _context.Equipments == null)
-			{
 				return NotFound();
-			}
 
-			var equipment = await _context.Equipments.FindAsync(id);
+			Equipment equipment = await _context.Equipments.FindAsync(id);
+
 			if (equipment == null)
-			{
 				return NotFound();
-			}
 			return View(equipment);
 		}
 
@@ -92,47 +85,36 @@ namespace Farm.Controllers
 		public async Task<IActionResult> Edit(int id, [Bind("EquipmentId,Money")] Equipment equipment)
 		{
 			if (id != equipment.EquipmentId)
-			{
 				return NotFound();
+
+			if (!ModelState.IsValid) return View(equipment);
+
+			try
+			{
+				_context.Update(equipment);
+				await _context.SaveChangesAsync();
+			}
+			catch (DbUpdateConcurrencyException)
+			{
+				if (!EquipmentExists(equipment.EquipmentId))
+					return NotFound();
+				throw;
 			}
 
-			if (ModelState.IsValid)
-			{
-				try
-				{
-					_context.Update(equipment);
-					await _context.SaveChangesAsync();
-				}
-				catch (DbUpdateConcurrencyException)
-				{
-					if (!EquipmentExists(equipment.EquipmentId))
-					{
-						return NotFound();
-					}
-					else
-					{
-						throw;
-					}
-				}
-				return RedirectToAction(nameof(Index));
-			}
-			return View(equipment);
+			return RedirectToAction(nameof(Index));
 		}
 
 		// GET: Equipments/Delete/5
 		public async Task<IActionResult> Delete(int? id)
 		{
 			if (id == null || _context.Equipments == null)
-			{
 				return NotFound();
-			}
 
-			var equipment = await _context.Equipments
+			Equipment equipment = await _context.Equipments
 				.FirstOrDefaultAsync(m => m.EquipmentId == id);
+
 			if (equipment == null)
-			{
 				return NotFound();
-			}
 
 			return View(equipment);
 		}
@@ -143,89 +125,102 @@ namespace Farm.Controllers
 		public async Task<IActionResult> DeleteConfirmed(int id)
 		{
 			if (_context.Equipments == null)
-			{
-				return Problem("Entity set 'FarmContext.Equipments'  is null.");
-			}
+				return Problem("Entity set 'FarmContext.Equipments' is null.");
+
 			var equipment = await _context.Equipments.FindAsync(id);
 			if (equipment != null)
-			{
 				_context.Equipments.Remove(equipment);
-			}
-			
+
 			await _context.SaveChangesAsync();
 			return RedirectToAction(nameof(Index));
 		}
 
 		private bool EquipmentExists(int id)
 		{
-		  return (_context.Equipments?.Any(e => e.EquipmentId == id)).GetValueOrDefault();
+			return (_context.Equipments?.Any(e => e.EquipmentId == id)).GetValueOrDefault();
 		}
+
 		public Plant GetPlant(string plantName)
 		{
 			Type plantType = typeof(PlantsList);
 			var b = plantType.GetProperty(plantName);
 			return (Plant)b.GetValue(b);
 		}
+
 		[HttpGet]
 		public IActionResult DecreaseMoney(int howMany)
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
-			Equipment equipment = _context.Equipments.Where(e => e.EquipmentId == profileId).First();
-			equipment.Money -= howMany;
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name)
+				.Select(u => u.ProfileId).First();
+			_context.Equipments.First(e => e.EquipmentId == profileId).Money -= howMany;
 			_context.SaveChanges();
-			return RedirectToAction("Index", "Fields", new { area = ""});
+			return RedirectToAction("Index", "Fields", new { area = "" });
 		}
+
 		public void IncreaseMoney(int howMany)
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
-			Equipment equipment = _context.Equipments.Where(e => e.EquipmentId == profileId).First();
-			equipment.Money += howMany;
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId)
+				.First();
+			_context.Equipments.First(e => e.EquipmentId == profileId).Money += howMany;
 			_context.SaveChanges();
 		}
+
 		public void ChangeSeedsCount(string plantName, int howMany = 1, bool adding = false)
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
-			PlantsCount pc = _context.PlantsCounts.Where(p => p.ProfileId == profileId && p.PlantName == plantName).First();
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name)
+				.Select(u => u.ProfileId).First();
+			PlantsCount pc = _context.PlantsCounts
+				.First(p => p.ProfileId == profileId && p.PlantName == plantName);
 			if (adding)
-				pc.Seeds+= howMany;
+				pc.Seeds += howMany;
 			else
-				pc.Seeds-= howMany;
+				pc.Seeds -= howMany;
 			_context.SaveChanges();
 		}
+
 		public void ChangeCollectedCount(string plantName, int howMany = 1, bool adding = false)
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
-			PlantsCount pc = _context.PlantsCounts.Where(p => p.ProfileId == profileId && p.PlantName == plantName).First();
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name)
+				.Select(u => u.ProfileId).First();
+			PlantsCount pc = _context.PlantsCounts
+				.First(p => p.ProfileId == profileId && p.PlantName == plantName);
 			if (adding)
-				pc.Collected+= howMany;
+				pc.Collected += howMany;
 			else
-				pc.Collected-= howMany;
+				pc.Collected -= howMany;
 			_context.SaveChanges();
 		}
+
 		public void ChangeAllCollectedCount(string plantName, int howMany = 1, bool adding = false)
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
-			PlantsCount pc = _context.PlantsCounts.Where(p => p.ProfileId == profileId && p.PlantName == plantName).First();
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId)
+				.First();
+			PlantsCount pc = _context.PlantsCounts
+				.First(p => p.ProfileId == profileId && p.PlantName == plantName);
 			if (adding)
-				pc.AllCollected+= howMany;
+				pc.AllCollected += howMany;
 			else
-				pc.AllCollected-= howMany;
+				pc.AllCollected -= howMany;
 			_context.SaveChanges();
 		}
+
 		public void AddHose()
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
-			_context.Equipments.Where(e => e.EquipmentId == profileId).First().HasHose = true;
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId)
+				.First();
+			_context.Equipments.First(e => e.EquipmentId == profileId).HasHose = true;
 			_context.SaveChanges();
 		}
+
 		public void ChangeFertilizers(int howMany, bool adding)
 		{
-			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId).First();
-			Equipment equipment = _context.Equipments.Where(p => p.EquipmentId == profileId).First();
+			int profileId = _context.Profiles.Where(p => p.Email == User.Identity.Name).Select(u => u.ProfileId)
+				.First();
+			Equipment equipment = _context.Equipments.First(p => p.EquipmentId == profileId);
 			if (adding)
-				equipment.Fertilizers+=howMany;
+				equipment.Fertilizers += howMany;
 			else
-				equipment.Fertilizers-=howMany;
+				equipment.Fertilizers -= howMany;
 			_context.SaveChanges();
 		}
 	}

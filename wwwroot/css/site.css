@@ -1,30 +1,29 @@
 ﻿html {
   font-size: 14px;
+  position: relative;
+  min-height: 100%;
+  user-select: none;
 }
-
 @media (min-width: 768px) {
   html {
     font-size: 16px;
   }
 }
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
   background-color: #976200;
 }
-
 main {
   margin-bottom: 20px;
   min-height: 80vh;
 }
-
 p {
   margin: 0;
 }
-
+a{
+  color: white !important;
+  text-decoration: none;
+  margin: 0;
+}
 button {
   background-color: lawngreen !important;
   border: 3px dashed lawngreen !important;
@@ -32,57 +31,47 @@ button {
   color: black !important;
   padding: 5px !important;
 }
-
 button[disabled] {
   background-color: lightgrey !important;
   border: 3px dashed lightgrey !important;
 }
-
 .top_menu {
   background-color: forestgreen !important;
   color: white !important;
 }
-
 .container {
   margin: 1rem auto;
 }
-
 .bottom_menu {
   background-color: #602800 !important;
 }
-
 footer {
   position: static !important;
   margin-top: -10px;
+  border-bottom: 1px solid black;
 }
-
 .hello_overlay {
   position: absolute;
   z-index: 1;
   text-align: center;
   left: 30%;
 }
-
 .hello_buttons {
   margin-top: 50px;
 }
-
 .hello_buttons > * {
   margin: 20px;
 }
-
 #hello_image {
   margin-top: -1rem;
   margin-left: -140px;
   width: 110vw;
   object-fit: fill;
 }
-
 .fields_table {
   float: left;
   width: 60%;
 }
-
 .field {
   display: block;
   float: left;
@@ -93,12 +82,10 @@ footer {
   border: 5px solid black;
   background-color: #602800;
 }
-
 .cell_image {
   width: 80px;
   height: 80px;
 }
-
 .fields_equipment {
   float: left;
   width: 16%;
@@ -106,7 +93,6 @@ footer {
   grid-template-columns: 50% 50%;
   border-collapse: collapse;
 }
-
 .equipment {
   width: 100%;
   float: left;
@@ -114,7 +100,6 @@ footer {
   grid-template-columns: repeat(14, 102px);
   border-collapse: collapse;
 }
-
 .equipment_cell {
   display: block;
   width: 106px;
@@ -123,15 +108,12 @@ footer {
   margin-left: 20px;
   margin-top: -3px;
 }
-
 .equipment_cell img {
   margin: 6px;
 }
-
 .grabbable {
   cursor: grab;
 }
-
 .text_overlay {
   z-index: 1;
   position: relative;
@@ -145,7 +127,6 @@ footer {
   text-align: center;
   cursor: default;
 }
-
 .money_text_overlay {
   z-index: 1;
   position: relative;
@@ -159,79 +140,86 @@ footer {
   text-align: center;
   cursor: default;
 }
-
 .stats {
   color: white;
 }
+.small_coin
+{
+  width: 40px;
+  height: 40px;
+}
 
+.text_overlay_small_coin
+{
+  z-index: 1;
+  position: relative;
+  display: block;
+  top: 7px;
+  margin: auto;
+  margin-top: -40px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.button_text
+{
+  float:left;
+  margin-top: 5px;
+  margin-left: 5px;
+}
 .money_div, .buttons {
   margin-left: 40%;
   margin-top: 20px;
   margin-bottom: 20px;
 }
-
 .market {
   margin-left: auto;
   display: block;
   width: 720px;
   margin-right: auto;
 }
-
 .market_plants {
   float: left;
   margin-right: 150px;
   margin-left: -80px;
 }
-
 .market_slot {
   width: 330px;
   display: grid;
   grid-template-columns: 200px 50px 80px;
 }
-
 .market_slot p {
   width: 25px;
   float: right;
 }
-
 .market_slot input {
   width: 50px;
   overflow: hidden;
 }
-
-.market_slot input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
 .market_slot input[type=number] {
   -moz-appearance: textfield;
 }
-
 .market_slot img {
   float: left;
 }
-
+.market_slot input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 .icons {
   display: grid;
   grid-template-columns: repeat(4, 50px);
   margin-top: 25px;
   color: white;
 }
-
 .buy_arrow {
   cursor: pointer;
 }
-
 .buy_arrow > span {
   color: lawngreen;
 }
-
 .sell_arrow {
   cursor: pointer;
 }
-
 .sell_arrow > span {
   color: #ff1b1b;
 }

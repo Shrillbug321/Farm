@@ -22,9 +22,8 @@ namespace Farm.Controllers
 			{
 				string filename = Path.GetFileName(file.FileName);
 				string path = $"wwwroot/images/{filename}";
-				FileStream fileStream = System.IO.File.Create(path);
+				using FileStream fileStream = System.IO.File.Create(path);
 				file.CopyTo(fileStream);
-				fileStream.Close();
 			}
 			return RedirectToAction("Index", new { message = "Pomyślnie dodano obrazek" });
 		}

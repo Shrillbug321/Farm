@@ -20,17 +20,20 @@
 				<div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
 					<ul class="navbar-nav flex-grow-1">
 						<li class="nav-item">
-							<a class="nav-link text-dark" asp-area="" asp-controller="Fields" asp-action="Index"><button>🌾 Pola</button></a>
+							<a class="nav-link text-dark" asp-area="" asp-controller="Fields" asp-action="Index">
+								<button>🌾 Pola</button>
+							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-dark" asp-area="" asp-controller="Equipments" asp-action="Index"><button>🎒 Ekwipunek</button></a>
+							<a class="nav-link text-dark" asp-area="" asp-controller="Equipments" asp-action="Index">
+								<button>🎒 Ekwipunek</button>
+							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-dark" asp-area="" asp-controller="Markets" asp-action="Index"><button>🍏 Rynek</button></a>
+							<a class="nav-link text-dark" asp-area="" asp-controller="Markets" asp-action="Index">
+								<button>🍏 Rynek</button>
+							</a>
 						</li>
-						@*<li class="nav-item">
-							<a class="nav-link text-light" href="https://localhost:7135?u=true">U</a>
-						</li>*@
 						@if (Context.User.IsInRole("Admin"))
 						{
 							<li class="nav-item">
@@ -49,8 +52,6 @@
 	<script src="~/lib/jquery/dist/jquery.min.js"></script>
 	<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="~/lib/signalr/dist/browser/signalr.js"></script>
-	<script src="~/js/site.js" asp-append-version="true"></script>
-	<script src="~/js/fields.js" asp-append-version="true"></script>
 	@await RenderSectionAsync("Scripts", required: false)
 	<div class="container">
 		<audio id="music_control">
@@ -63,10 +64,15 @@
 
 	<footer class="border-top footer text-muted bottom_menu">
 		<div class="container">
-			&copy; Sebastian Dreszer 2022 - Rolnik <br/>
-			<a href='https://pl.freepik.com/zdjecia/lato'>Lato zdjęcie utworzone przez onlyyouqj - pl.freepik.com</a>
-			<a href="https://www.vecteezy.com/free-vector/vector">Vector Vectors by Vecteezy</a>
+			<div style="line-height: 22px;">
+				<p style="color: white">&copy; Sebastian Dreszer 2022 - Rolnik </p>
+				<a href="https://pl.freepik.com/zdjecia/lato">Zdjęcie "Lato" utworzone przez onlyyouqj - pl.freepik.com</a>
+				<br/>
+				<a href="https://www.vecteezy.com/free-vector/vector">Vector Vectors by Vecteezy</a>
+			</div>
 		</div>
 	</footer>
+	
+	<script src="~/js/site.js" asp-append-version="true"></script>
 </body>
 </html>

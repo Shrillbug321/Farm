@@ -3,24 +3,28 @@
 @{
     ViewData["Title"] = "Rynek";
     List<Plant> plants = PlantsList.All();
-    Dictionary<string, int> buy_prices = new Dictionary<string, int>();
-    buy_prices.Add("Cucumber", 2);
-    buy_prices.Add("Beetroot", 3);
-    buy_prices.Add("Carrot", 3);
-    buy_prices.Add("Strawberry", 4);
-    buy_prices.Add("Blueberry", 4);
-    buy_prices.Add("Raspberry", 4);
-    buy_prices.Add("Dandelion", 1);
-    buy_prices.Add("Chamomile", 2);
-    Dictionary<string, int> sell_prices = new Dictionary<string, int>();
-    sell_prices.Add("Cucumber", 3);
-    sell_prices.Add("Beetroot", 5);
-    sell_prices.Add("Carrot", 4);
-    sell_prices.Add("Strawberry", 5);
-    sell_prices.Add("Blueberry", 6);
-    sell_prices.Add("Raspberry", 5);
-    sell_prices.Add("Dandelion", 2);
-    sell_prices.Add("Chamomile", 2);
+    Dictionary<string, int> buy_prices = new Dictionary<string, int>
+    {
+        { "Cucumber", 2 },
+        { "Beetroot", 3 },
+        { "Carrot", 3 },
+        { "Strawberry", 4 },
+        { "Blueberry", 4 },
+        { "Raspberry", 4 },
+        { "Dandelion", 1 },
+        { "Chamomile", 2 }
+    };
+    Dictionary<string, int> sell_prices = new Dictionary<string, int>
+    {
+        { "Cucumber", 3 },
+        { "Beetroot", 5 },
+        { "Carrot", 4 },
+        { "Strawberry", 5 },
+        { "Blueberry", 6 },
+        { "Raspberry", 5 },
+        { "Dandelion", 2 },
+        { "Chamomile", 2 }
+    };
     Equipment equipment = ViewData["Equipment"] as Equipment;
     List<PlantsCount> plantsCount = ViewData["PlantsCounts"] as List<PlantsCount>;
 }
@@ -36,19 +40,21 @@
         <div class="money_div">
 		    <p id="money_text_overlay" class="money_text_overlay">
 			    @equipment.Money </p>
-		    <img class="cell_image coin" @String.Format("src=/images/coin.png") />
+		    <img class="cell_image coin" @("src=/images/coin.png") />
 	    </div>
 
     @{
         int i=1;
         foreach (Plant plant in plants)
         {
-            <div class="market_slot" @String.Format("id=slot_{0}", i)>
+            <div class="market_slot" @($"id=slot_{i}")>
                 <div class="icons">
-                    <div class="buy_arrow" @String.Format("onclick=buy_plant('slot_{0}')", i)> <span>&#129144;</span> <p name="buy"> @buy_prices[plant.Name] </p></div>
-                    <div class="sell_arrow" @String.Format("onclick=sell_plant('slot_{0}')", i)><span>&#129146;</span><p name="sell"> @sell_prices[plant.Name] </p></div>
-                    <div>🌱<p class=seeds_count name=seeds_count> @plantsCount.Where(pc=>pc.PlantName == plant.Name).First().Seeds</p></div>
-                    <div>📦<p class=collected_count name=collected_count> @plantsCount.Where(pc=>pc.PlantName == plant.Name).First().Collected</p></div>
+                    <div class="buy_arrow" @($"onclick=buyPlant('slot_{i}')")> <span>&#129144;</span> 
+                        <p name="buy"> @buy_prices[plant.Name] </p></div>
+                    <div class="sell_arrow" @($"onclick=sellPlant('slot_{i++}')")><span>&#129146;</span>
+                        <p name="sell"> @sell_prices[plant.Name] </p></div>
+                    <div>🌱<p class=seeds_count name=seeds_count> @plantsCount.First(pc => pc.PlantName == plant.Name).Seeds</p></div>
+                    <div>📦<p class=collected_count name=collected_count> @plantsCount.First(pc => pc.PlantName == plant.Name).Collected</p></div>
                 </div>
                 <input type=number min=0 width=30 
                     name=@plant.Name
@@ -56,47 +62,91 @@
                     sell_price=@sell_prices[plant.Name]
                     value=0 />
                     <img class="cell_image"
-		                @String.Format("src=/images/{0}.png", plant.Name)
+		                @($"src=/images/{plant.Name}.png")
                         />
                 </div>
-            i++;
         }
     }
         <div class="buttons">
-            <button onclick="buy_plants()">Kup</button>
-            <button id="sell_btn" onclick="sell_plants()">Sprzedaj</button>
-            <button id="sell_all_btn" class="mt-2" onclick="sell_all_plants()">Sprzedaj wszystkie</button>
+            <button onclick="buyPlants()">Kup</button>
+            <button id="sell_btn" onclick="sellPlants()">Sprzedaj</button>
+            <button id="sell_all_btn" class="mt-2" onclick="sellAllPlants()">Sprzedaj wszystkie</button>
         </div>
     </div>
     <div id="tools">
         <div>
             <div>
-		        <img class="cell_image" @String.Format("src=/images/hose.png") />
+		        <img class="cell_image" @("src=/images/hose.png") />
                 @if (equipment.HasHose)
                 {
-                    <button id="buy_hose_button" onclick="buy_hose()" disabled>Kup wąż ogrodowy (30 monet)</button>
+                    <button id="buy_hose_button" onclick="buyHose()" disabled>
+                        <div style="float:left;">
+                            <img class="cell_image small_coin" src="/images/coin.png" alt="">
+                            <p class="text_overlay_small_coin">30</p>
+                        </div>
+                        <div class="button_text">
+                           Kupiony 
+                        </div>
+                        <div style="clear:both;"></div>
+                    </button>
                 }
                 else
                 {
                     if (equipment.Money < 30)
                     {
-                        <button id="buy_hose_button" onclick="buy_hose()" disabled>Kup wąż ogrodowy (30 monet)</button>
+                        <button id="buy_hose_button" onclick="buyHose()" disabled>
+                            <div style="float:left;">
+                            	<img class="cell_image small_coin" src="/images/coin.png" alt="">
+                            	<p class="text_overlay_small_coin">30</p>
+                            </div>
+                            <div class="button_text">
+                               Kup wąż ogrodowy 
+                            </div>
+                            <div style="clear:both;"></div>
+                        </button>
                     }
                     else
                     {
-                        <button id="buy_hose_button" onclick="buy_hose()" has-hose="false">Kup wąż ogrodowy (30 monet)</button>
+                        <button id="buy_hose_button" onclick="buyHose()" has-hose="false">
+                            <div style="float:left;">
+                                <img class="cell_image small_coin" src="/images/coin.png" alt="">
+                                <p class="text_overlay_small_coin">30</p>
+                            </div>
+                            <div class="button_text">
+                               Kup wąż ogrodowy 
+                            </div>
+                            <div style="clear:both;"></div>
+                        </button>
                     }
                 }
             </div>
             <div>
-		        <img class="cell_image" @String.Format("src=/images/fertilizer.png") />
+		        <img class="cell_image" @("src=/images/fertilizer.png") />
                 @if(equipment.Money > 20)
                 {
-                    <button id="buy_fertilizer_button" onclick="buy_fertilizer()">Kup nawóz (20 monet)</button>
+                    <button id="buy_fertilizer_button" onclick="buyFertilizer()">
+                        <div style="float:left;">
+                            <img class="cell_image small_coin" src="/images/coin.png" alt="">
+                            <p class="text_overlay_small_coin">20</p>
+                        </div>
+                        <div class="button_text">
+                           Kup nawóz 
+                        </div>
+                        <div style="clear:both;"></div>
+                    </button>
                 }
                 else
                 {
-                    <button id="buy_fertilizer_button" onclick="buy_fertilizer()" disabled>Kup nawóz (20 monet)</button>
+                    <button id="buy_fertilizer_button" onclick="buyFertilizer()" disabled>
+                         <div style="float:left;">
+                            <img class="cell_image small_coin" src="/images/coin.png" alt="">
+                            <p class="text_overlay_small_coin">20</p>
+                        </div>
+                        <div class="button_text">
+                           Kup nawóz 
+                        </div>
+                        <div style="clear:both;"></div>
+                    </button>
                 }
             </div>
 	    </div>

@@ -82,7 +82,7 @@ namespace Farm.Areas.Identity.Pages.Account
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             [Required]
-            [StringLength(100, ErrorMessage = "{0} musi mieć conajmniej {2} i conjawyżej {1} znaków.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "{0} musi mieć co najmniej {2} i co najwyżej {1} znaków.", MinimumLength = 6)]
             [DataType(DataType.Password)]
             [Display(Name = "Hasło")]
             public string Password { get; set; }
@@ -93,10 +93,9 @@ namespace Farm.Areas.Identity.Pages.Account
             /// </summary>
             [DataType(DataType.Password)]
             [Display(Name = "Potwierdź hasło")]
-            [Compare("Password", ErrorMessage = "Hasło i potweirdzenie nie są zgodne.")]
+            [Compare("Password", ErrorMessage = "Hasło i potwierdzenie nie są zgodne.")]
             public string ConfirmPassword { get; set; }
         }
-
 
         public async Task OnGetAsync(string returnUrl = null)
         {
@@ -120,10 +119,10 @@ namespace Farm.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
-                    var userId = await _userManager.GetUserIdAsync(user);
-                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    string userId = await _userManager.GetUserIdAsync(user);
+                    string code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                    var callbackUrl = Url.Page(
+                    string callbackUrl = Url.Page(
                         "/Account/ConfirmEmail",
                         pageHandler: null,
                         values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
@@ -139,26 +138,24 @@ namespace Farm.Areas.Identity.Pages.Account
                     _context.Equipments.Add(new Models.Equipment());
                     _context.Farms.Add(new Models.FarmModel());
                     _context.SaveChanges();
+                    
                     int id = _context.Profiles.OrderBy(p => p.ProfileId).Last().ProfileId;
                     _context.PlantsCountsInitialize(id);
+                    
                     HttpContext.Response.Cookies.Append("new_profile", id.ToString(),
                         new CookieOptions { Expires=DateTime.Now.AddMinutes(1) } );
+                    
                     HttpContext.Response.Cookies.Append("email", Input.Email,
                         new CookieOptions { Expires=DateTime.Now.AddMinutes(1) } );
+                    
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
-                    {
                         return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
-                    }
-                    else
-                    {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return LocalRedirect(returnUrl);
-                    }
+                    await _signInManager.SignInAsync(user, isPersistent: false);
+                    return LocalRedirect(returnUrl);
                 }
+                
                 foreach (var error in result.Errors)
-                {
                     ModelState.AddModelError(string.Empty, error.Description);
-                }
             }
 
             // If we got this far, something failed, redisplay form
@@ -182,9 +179,7 @@ namespace Farm.Areas.Identity.Pages.Account
         private IUserEmailStore<IdentityUser> GetEmailStore()
         {
             if (!_userManager.SupportsUserEmail)
-            {
                 throw new NotSupportedException("The default UI requires a user store with email support.");
-            }
             return (IUserEmailStore<IdentityUser>)_userStore;
         }
     }

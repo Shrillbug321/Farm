@@ -8,7 +8,7 @@ namespace Farm.Data
 	{
 		public static void Initialize(FarmContext context)
 		{
-			context.Database.EnsureDeleted();
+			//context.Database.EnsureDeleted();
 			context.Database.EnsureCreated();
 			if (context.Farms.Any())
 			{
