@@ -1,3 +1,5 @@
+**I fix version run from .exe file. Version run directly from IDE should work properly**
+
 ## PL
 # Rolnik
 
